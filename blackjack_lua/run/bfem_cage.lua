@@ -7,6 +7,7 @@ NodeLibrary:addNodes(
         BFEMCage = {
             label = "Bifilar Electromagnet Cage",
             op = function(inputs)
+                local all_faces_selection = SelectionExpression:new("*")
                 local segments_per_rail = math.ceil(inputs.segments / inputs.num_pairs / 2)
                 if segments_per_rail < 2 then
                     segments_per_rail = 2
@@ -22,7 +23,7 @@ NodeLibrary:addNodes(
                 local inner_dtheta = math.asin(inputs.wire_gap / (2 * inner_radius))
                 local outer_dtheta = math.asin(inputs.wire_gap / (2 * outer_radius))
 
-                local out_mesh = P.mesh("out_mesh")
+                local out_mesh = {} -- P.mesh("out_mesh")
                 for i = 0, 2*inputs.num_pairs-1 do
                     local inner_start_angle = i * rail_angle_delta + inner_dtheta
                     local inner_end_angle = (i + 1) * rail_angle_delta - inner_dtheta
@@ -64,18 +65,17 @@ NodeLibrary:addNodes(
                         return points
                     end
 
-                    local points = gen_points(direction)
-                    local new_mesh = Primitives.polygon(points)
-                    local extruded_mesh = new_mesh:clone()
-                    Ops.extrude(inputs.faces, 1, extruded_mesh)
+                    local new_mesh = Primitives.polygon(gen_points(direction))
+                    Ops.extrude(all_faces_selection, new_mesh)
 
                     -- Now generate the extrusion caps by going the other direction
-                    Ops.merge(extruded_mesh, Primitives.polygon(gen_points(-direction)))
+                    local face_mesh = Primitives.polygon(gen_points(-direction))
+                    Ops.merge(new_mesh, face_mesh)
 
                     if i == 0 then
-                        out_mesh = extruded_mesh
+                        out_mesh = new_mesh
                     else
-                        Ops.merge(out_mesh, extruded_mesh)
+                        Ops.merge(out_mesh, new_mesh)
                     end
                 end
 
@@ -88,10 +88,10 @@ NodeLibrary:addNodes(
                 P.v3("size", vector(1, 0, 1)),
                 P.scalar("thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
-                P.scalar("wire_gap", {default = 1, min = 0, soft_max = 10}),
+                P.scalar("wire_gap", {default = 0.1, min = 0, soft_max = 10}),
                 P.scalar_int("segments", {default = 36, min = 1, soft_max = 360}),
-                P.scalar_int("num_pairs", {default = 1, min = 1, soft_max = 33}),
-                P.selection("faces", {default="*"}),
+                P.scalar_int("num_pairs", {default = 5, min = 1, soft_max = 33}),
+                P.selection("faces"),
                 P.enum("direction", {"Clockwise", "Counter-Clockwise"}, 0)
             },
             outputs = {P.mesh("out_mesh")},
