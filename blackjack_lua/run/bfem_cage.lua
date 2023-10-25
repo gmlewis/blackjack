@@ -7,7 +7,7 @@ NodeLibrary:addNodes(
         BFEMCage = {
             label = "Bifilar Electromagnet Cage",
             op = function(inputs)
-                local all_faces_selection = SelectionExpression:new("*")
+                local all_faces_selection = SelectionExpression.new("*")
                 local segments_per_rail = math.ceil(inputs.segments / inputs.num_pairs / 2)
                 if segments_per_rail < 2 then
                     segments_per_rail = 2
@@ -66,7 +66,7 @@ NodeLibrary:addNodes(
                     end
 
                     local new_mesh = Primitives.polygon(gen_points(direction))
-                    Ops.extrude(all_faces_selection, new_mesh)
+                    Ops.extrude(all_faces_selection, 1, new_mesh)
 
                     -- Now generate the extrusion caps by going the other direction
                     local face_mesh = Primitives.polygon(gen_points(-direction))
@@ -91,7 +91,6 @@ NodeLibrary:addNodes(
                 P.scalar("wire_gap", {default = 0.1, min = 0, soft_max = 10}),
                 P.scalar_int("segments", {default = 36, min = 1, soft_max = 360}),
                 P.scalar_int("num_pairs", {default = 5, min = 1, soft_max = 33}),
-                P.selection("faces"),
                 P.enum("direction", {"Clockwise", "Counter-Clockwise"}, 0)
             },
             outputs = {P.mesh("out_mesh")},
