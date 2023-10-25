@@ -13,11 +13,14 @@ NodeLibrary:addNodes(
                     segments_per_rail = 2
                 end
 
+		local lower_y = inputs.pos.y - inputs.wire_width/2
+		-- extrude_height is flush with the bottom (front) and rises (width+gap) above for wiring purposes on the top (back):
+		local extrude_height = 2 * inputs.turns * (inputs.wire_width + inputs.wire_gap) + inputs.wire_width + inputs.wire_gap + inputs.wire_width
+
                 local backbone = Primitives.line(vector(0,0,0), vector(0,1,0), 1)
 
-                local direction = inputs.direction == "Clockwise" and -1 or 1
                 local rail_angle_delta = math.pi / inputs.num_pairs
-                local inner_radius = inputs.size.x
+                local inner_radius = inputs.size.x + inputs.wire_width/2 + inputs.wire_gap
                 local outer_radius = inner_radius + inputs.thickness
 
                 local inner_dtheta = math.asin(inputs.wire_gap / (2 * inner_radius))
@@ -40,36 +43,32 @@ NodeLibrary:addNodes(
 
                     local function gen_points(dir)
                         local points = {}
-                        local function new_point(j, start_angle, angle_delta, rx, rz)
+                        local function new_point(j, start_angle, angle_delta, r)
                             local angle = dir * (start_angle + j * angle_delta)
-                            local x = inputs.pos.x + rx * math.cos(angle)
-                            local z = inputs.pos.z + rz * math.sin(angle)
-                            local point = vector(x, inputs.pos.y, z) -- y is "up"
+                            local x = inputs.pos.x + r * math.cos(angle)
+                            local z = inputs.pos.z + r * math.sin(angle)
+                            local point = vector(x, lower_y, z) -- y is "up"
                             table.insert(points, point)
                         end
 
                         -- inner points:
-                        local rx = inputs.size.x
-                        local rz = inputs.size.z
                         for j = 0, segments_per_rail do
-                            new_point(j, inner_start_angle, inner_angle_delta, rx, rz)
+                            new_point(j, inner_start_angle, inner_angle_delta, inner_radius)
                         end
 
                         -- outer points:
-                        rx = inputs.size.x + inputs.thickness
-                        rz = inputs.size.z + inputs.thickness
                         for j = segments_per_rail, 0, -1 do
-                            new_point(j, outer_start_angle, outer_angle_delta, rx, rz)
+                            new_point(j, outer_start_angle, outer_angle_delta, outer_radius)
                         end
 
                         return points
                     end
 
-                    local new_mesh = Primitives.polygon(gen_points(direction))
-                    Ops.extrude(all_faces_selection, 1, new_mesh)
+                    local new_mesh = Primitives.polygon(gen_points(1))
+                    Ops.extrude(all_faces_selection, extrude_height, new_mesh)
 
                     -- Now generate the extrusion caps by going the other direction
-                    local face_mesh = Primitives.polygon(gen_points(-direction))
+                    local face_mesh = Primitives.polygon(gen_points(-1))
                     Ops.merge(new_mesh, face_mesh)
 
                     if i == 0 then
@@ -84,14 +83,14 @@ NodeLibrary:addNodes(
                 }
             end,
             inputs = {
-                P.v3("pos", vector(0, 0, 0)),
-                P.v3("size", vector(1, 0, 1)),
+                P.v3("pos", vector(0, 0, 0)),  -- pos is lowered by wire_width/2
+                P.v3("size", vector(1, 0, 1)),  -- wire_width/2 + wire_gap is added to size.
                 P.scalar("thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_gap", {default = 0.1, min = 0, soft_max = 10}),
+                P.scalar("wire_width", {default = 1, min = 0, soft_max = 10}),
                 P.scalar_int("segments", {default = 36, min = 1, soft_max = 360}),
                 P.scalar_int("num_pairs", {default = 5, min = 1, soft_max = 33}),
-                P.enum("direction", {"Clockwise", "Counter-Clockwise"}, 0)
             },
             outputs = {P.mesh("out_mesh")},
             returns = "out_mesh"
