@@ -41,13 +41,15 @@ NodeLibrary:addNodes(
                         return
                     end
 
+		    local delta_y = (i % inputs.num_pairs) * (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
+
                     local function gen_points(dir)
                         local points = {}
                         local function new_point(j, start_angle, angle_delta, r)
-                            local angle = dir * (start_angle + j * angle_delta)
+                            local angle = start_angle + j * angle_delta
                             local x = inputs.pos.x + r * math.cos(angle)
                             local z = inputs.pos.z + r * math.sin(angle)
-                            local point = vector(x, lower_y, z) -- y is "up"
+                            local point = vector(x, lower_y + delta_y, z) -- y is "up"
                             table.insert(points, point)
                         end
 
@@ -60,6 +62,14 @@ NodeLibrary:addNodes(
                         for j = segments_per_rail, 0, -1 do
                             new_point(j, outer_start_angle, outer_angle_delta, outer_radius)
                         end
+
+			if dir < 0 then
+			    local rev = {}
+			    for i=#points, 1, -1 do
+				rev[#rev+1] = points[i]
+			    end
+			    return rev
+			end
 
                         return points
                     end
@@ -78,6 +88,27 @@ NodeLibrary:addNodes(
                     end
                 end
 
+		for i = 0, inputs.num_pairs-1 do
+		    local y = lower_y + (inputs.num_pairs - i - 1) * (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
+		    -- Create the connectors to the ends of the coils, based on the shift_mixer setting
+		    -- which determines how far each coil pair has rotated:
+		    local rotation = -inputs.shift_mixer * math.pi * i / inputs.num_pairs
+		    local line_length = (inputs.num_pairs - i) * (inputs.wire_width + inputs.wire_gap)
+		    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation)
+		    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation)
+		    local ex = inputs.pos.x + inner_radius * math.cos(rotation)
+		    local ez = inputs.pos.z + inner_radius * math.sin(rotation)
+		    local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
+		    Ops.merge(out_mesh, line)
+		    -- second connection
+		    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation + math.pi)
+		    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation + math.pi)
+		    local ex = inputs.pos.x + inner_radius * math.cos(rotation + math.pi)
+		    local ez = inputs.pos.z + inner_radius * math.sin(rotation + math.pi)
+		    local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
+		    Ops.merge(out_mesh, line)
+		end
+
                 return {
                     out_mesh = out_mesh
                 }
@@ -85,6 +116,7 @@ NodeLibrary:addNodes(
             inputs = {
                 P.v3("pos", vector(0, 0, 0)),  -- pos is lowered by wire_width/2
                 P.v3("size", vector(1, 0, 1)),  -- wire_width/2 + wire_gap is added to size.
+		P.scalar("shift_mixer", {default = 1, min = -1, soft_max = 1}),
                 P.scalar("thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_gap", {default = 0.1, min = 0, soft_max = 10}),
