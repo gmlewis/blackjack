@@ -90,12 +90,22 @@ NodeLibrary:addNodes(
                     end
                 end
 
-		for i = 0, inputs.num_pairs-1 do
-		    local y = lower_y + i * delta_y
+		-- Pre-calculate important values for all coil connectors
+		local rotations = {}
+		local line_lengths = {}
+		local ys = {}
+		for i = 1, inputs.num_pairs do
+		    ys[i] = lower_y + (i-1) * delta_y
 		    -- Create the connectors to the ends of the coils, based on the shift_mixer setting
 		    -- which determines how far each coil pair has rotated:
-		    local rotation = -inputs.shift_mixer * math.pi * i / inputs.num_pairs
-		    local line_length = (inputs.num_pairs - i) * (inputs.wire_width + inputs.wire_gap)
+		    rotations[i] = -inputs.shift_mixer * math.pi * (i-1) / inputs.num_pairs
+		    line_lengths[i] = (inputs.num_pairs - i + 1) * (inputs.wire_width + inputs.wire_gap)
+		end
+
+		for i = 1, inputs.num_pairs do
+		    local y = ys[i]
+		    local rotation = rotations[i]
+		    local line_length = line_lengths[i]
 		    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation)
 		    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation)
 		    local ex = inputs.pos.x + inner_radius * math.cos(rotation)
