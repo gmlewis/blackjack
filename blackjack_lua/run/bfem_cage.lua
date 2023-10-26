@@ -102,23 +102,60 @@ NodeLibrary:addNodes(
 		    line_lengths[i] = (inputs.num_pairs - i + 1) * (inputs.wire_width + inputs.wire_gap)
 		end
 
+		local function gen_points(y, inner_start_angle, inner_angle_delta, dir)
+		    local points = {}
+		    local function new_point(j, start_angle, angle_delta, r)
+			local angle = start_angle + j * angle_delta
+			local x = inputs.pos.x + r * math.cos(angle)
+			local z = inputs.pos.z + r * math.sin(angle)
+			local point = vector(x, y, z) -- y is "up"
+			table.insert(points, point)
+		    end
+
+		    -- inner points:
+		    for j = 0, segments_per_rail do
+			new_point(j, inner_start_angle, inner_angle_delta, inner_radius)
+		    end
+
+		    if dir < 0 then
+			local rev = {}
+			for i=#points, 1, -1 do
+			    rev[#rev+1] = points[i]
+			end
+			return rev
+		    end
+
+		    return points
+		end
+
 		for i = 1, inputs.num_pairs do
-		    local y = ys[i]
+		    local y = ys[i] + inputs.wire_width
 		    local rotation = rotations[i]
 		    local line_length = line_lengths[i]
+                    local inner_start_angle = -(i-1) * rail_angle_delta
+                    local inner_end_angle = -(i-2) * rail_angle_delta - 2*inner_dtheta
+                    local inner_angle_delta = (inner_end_angle - inner_start_angle) / segments_per_rail
+		    local points = gen_points(y, inner_start_angle, inner_angle_delta, 1)
+		    local cap_points = gen_points(y, inner_start_angle, inner_angle_delta, -1)
+
 		    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation)
 		    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation)
-		    local ex = inputs.pos.x + inner_radius * math.cos(rotation)
-		    local ez = inputs.pos.z + inner_radius * math.sin(rotation)
-		    local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
-		    Ops.merge(out_mesh, line)
-		    -- second connection for pair directly opposite first connection
-		    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation + math.pi)
-		    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation + math.pi)
-		    local ex = inputs.pos.x + inner_radius * math.cos(rotation + math.pi)
-		    local ez = inputs.pos.z + inner_radius * math.sin(rotation + math.pi)
-		    local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
-		    Ops.merge(out_mesh, line)
+		    table.insert(points, vector(sx, y, sz))
+		    table.insert(cap_points, vector(sx, y, sz))
+
+		    local face = Primitives.polygon(points)
+		    Ops.extrude(all_faces_selection, inputs.wire_width, face)
+		    Ops.merge(out_mesh, face)
+		    local cap_face = Primitives.polygon(cap_points)
+		    Ops.merge(out_mesh, cap_face)
+
+		    -- -- second connection for pair directly opposite first connection
+		    -- local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation + math.pi)
+		    -- local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation + math.pi)
+		    -- local ex = inputs.pos.x + inner_radius * math.cos(rotation + math.pi)
+		    -- local ez = inputs.pos.z + inner_radius * math.sin(rotation + math.pi)
+		    -- local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
+		    -- Ops.merge(out_mesh, line)
 		end
 
                 return {
