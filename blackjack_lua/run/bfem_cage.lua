@@ -28,14 +28,14 @@ NodeLibrary:addNodes(
 
 		local delta_y = (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
 
-                local out_mesh = {} -- P.mesh("out_mesh")
+                local out_mesh = {}
                 for i = 0, 2*inputs.num_pairs-1 do
-                    local inner_start_angle = i * rail_angle_delta + inner_dtheta
-                    local inner_end_angle = (i + 1) * rail_angle_delta - inner_dtheta
+                    local inner_start_angle = i * rail_angle_delta
+                    local inner_end_angle = (i + 1) * rail_angle_delta - 2*inner_dtheta
                     local inner_angle_delta = (inner_end_angle - inner_start_angle) / segments_per_rail
 
-                    local outer_start_angle = i * rail_angle_delta + outer_dtheta
-                    local outer_end_angle = (i + 1) * rail_angle_delta - outer_dtheta
+                    local outer_start_angle = i * rail_angle_delta
+                    local outer_end_angle = (i + 1) * rail_angle_delta - 2*outer_dtheta
                     local outer_angle_delta = (outer_end_angle - outer_start_angle) / segments_per_rail
 
                     if inner_angle_delta <= 0 or outer_angle_delta <= 0 then
