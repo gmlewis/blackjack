@@ -26,6 +26,8 @@ NodeLibrary:addNodes(
                 local inner_dtheta = math.asin(inputs.wire_gap / (2 * inner_radius))
                 local outer_dtheta = math.asin(inputs.wire_gap / (2 * outer_radius))
 
+		local delta_y = (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
+
                 local out_mesh = {} -- P.mesh("out_mesh")
                 for i = 0, 2*inputs.num_pairs-1 do
                     local inner_start_angle = i * rail_angle_delta + inner_dtheta
@@ -41,7 +43,7 @@ NodeLibrary:addNodes(
                         return
                     end
 
-		    local delta_y = (i % inputs.num_pairs) * (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
+		    local y = lower_y + ((inputs.num_pairs-i) % inputs.num_pairs) * delta_y
 
                     local function gen_points(dir)
                         local points = {}
@@ -49,7 +51,7 @@ NodeLibrary:addNodes(
                             local angle = start_angle + j * angle_delta
                             local x = inputs.pos.x + r * math.cos(angle)
                             local z = inputs.pos.z + r * math.sin(angle)
-                            local point = vector(x, lower_y + delta_y, z) -- y is "up"
+                            local point = vector(x, y, z) -- y is "up"
                             table.insert(points, point)
                         end
 
@@ -89,7 +91,7 @@ NodeLibrary:addNodes(
                 end
 
 		for i = 0, inputs.num_pairs-1 do
-		    local y = lower_y + (inputs.num_pairs - i - 1) * (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
+		    local y = lower_y + i * delta_y
 		    -- Create the connectors to the ends of the coils, based on the shift_mixer setting
 		    -- which determines how far each coil pair has rotated:
 		    local rotation = -inputs.shift_mixer * math.pi * i / inputs.num_pairs
@@ -100,7 +102,7 @@ NodeLibrary:addNodes(
 		    local ez = inputs.pos.z + inner_radius * math.sin(rotation)
 		    local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
 		    Ops.merge(out_mesh, line)
-		    -- second connection
+		    -- second connection for pair directly opposite first connection
 		    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation + math.pi)
 		    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation + math.pi)
 		    local ex = inputs.pos.x + inner_radius * math.cos(rotation + math.pi)
