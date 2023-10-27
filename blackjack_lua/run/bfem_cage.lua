@@ -138,23 +138,20 @@ NodeLibrary:addNodes(
                     local points = gen_points(y, inner_start_angle, inner_angle_delta, 1)
                     local cap_points = gen_points(y, inner_start_angle, inner_angle_delta, -1)
 
-                    local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation)
-                    local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation)
+                    local connector_radius = inner_radius - line_length
+                    local connector_dtheta = math.asin(inputs.wire_gap / (2 * connector_radius))
+                    local sx = inputs.pos.x + connector_radius * math.cos(rotation)
+                    local sz = inputs.pos.z + connector_radius * math.sin(rotation)
 
                     -- calculate the final point that will be wire_width away from the next wire
-                    -- if i == 1 then
-                    --      -- Special case since the inner coil has no neighbor - just make one wire_width
-                        local tx = inputs.pos.x + (inner_radius - line_length) * math.cos(inner_end_angle)
-                        local tz = inputs.pos.z + (inner_radius - line_length) * math.sin(inner_end_angle)
-                        table.insert(points, vector(tx, y, tz))
-                        table.insert(points, vector(sx, y, sz))
+                    local t_angle = inner_end_angle -- rotation + connector_dtheta
+                    local tx = inputs.pos.x + connector_radius * math.cos(t_angle)
+                    local tz = inputs.pos.z + connector_radius * math.sin(t_angle)
+                    table.insert(points, vector(tx, y, tz))
+                    table.insert(points, vector(sx, y, sz))
 
-                        table.insert(cap_points, vector(sx, y, sz))
-                        table.insert(cap_points, vector(tx, y, tz))
-
-                    -- else
-                    --     table.insert(points, vector(sx, y, sz))
-                    -- end
+                    table.insert(cap_points, vector(sx, y, sz))
+                    table.insert(cap_points, vector(tx, y, tz))
 
                     local face = Primitives.polygon(points)
                     Ops.extrude(all_faces_selection, inputs.wire_width, face)
@@ -163,8 +160,8 @@ NodeLibrary:addNodes(
                     Ops.merge(out_mesh, cap_face)
 
                     -- -- second connection for pair directly opposite first connection
-                    -- local sx = inputs.pos.x + (inner_radius - line_length) * math.cos(rotation + math.pi)
-                    -- local sz = inputs.pos.z + (inner_radius - line_length) * math.sin(rotation + math.pi)
+                    -- local sx = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
+                    -- local sz = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
                     -- local ex = inputs.pos.x + inner_radius * math.cos(rotation + math.pi)
                     -- local ez = inputs.pos.z + inner_radius * math.sin(rotation + math.pi)
                     -- local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
