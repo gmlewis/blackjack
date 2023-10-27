@@ -15,7 +15,8 @@ NodeLibrary:addNodes(
 
                 local lower_y = inputs.pos.y - inputs.wire_width/2
                 -- extrude_height is flush with the bottom (front) and rises (width+gap) above for wiring purposes on the top (back):
-                local extrude_height = 2 * inputs.turns * (inputs.wire_width + inputs.wire_gap) + inputs.wire_width + inputs.wire_gap + inputs.wire_width
+                local coil_height = 2 * inputs.turns * (inputs.wire_width + inputs.wire_gap) + inputs.wire_width
+                local extrude_height = coil_height + inputs.wire_gap + inputs.wire_width
 
                 local backbone = Primitives.line(vector(0,0,0), vector(0,1,0), 1)
 
@@ -117,6 +118,7 @@ NodeLibrary:addNodes(
                     local sz = inputs.pos.z + connector_radius * math.sin(rotation)
 
                     -- calculate the final point that will be wire_width away from the next wire
+                    -- this is the front/bottom of the design
                     local t_angle = inner_end_angle
                     if i > 1 then
                         t_angle = rotations[i-1] - connector_dtheta
@@ -130,7 +132,26 @@ NodeLibrary:addNodes(
                     Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                     Ops.merge(out_mesh, face)
 
+                    -- add a vertical post to the back/top of the design for connecting the coils
+                    local top_y = coil_height - inputs.wire_width + ys[i]
+                    local sx1 = sx + inputs.wire_width * math.cos(rotation - math.pi/2)
+                    local sz1 = sz + inputs.wire_width * math.sin(rotation - math.pi/2)
+                    local sx2 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation)
+                    local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation)
+                    local sx3 = sx2 + inputs.wire_width * math.cos(rotation - math.pi/2)
+                    local sz3 = sz2 + inputs.wire_width * math.sin(rotation - math.pi/2)
+                    local points = {
+                        vector(sx1, top_y, sz1),
+                        vector(sx, top_y, sz),
+                        vector(sx2, top_y, sz2),
+                        vector(sx3, top_y, sz3),
+                    }
+                    local face = Primitives.polygon(points)
+                    Ops.extrude_with_caps(all_faces_selection, 10, face)
+                    Ops.merge(out_mesh, face)
+
                     -- second connection for pair directly opposite first connection
+                    -- this is the front/bottom of the design
                     local points = gen_points(y, inner_start_angle + math.pi, inner_angle_delta, 1)
                     local sx = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
                     local sz = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
@@ -141,6 +162,24 @@ NodeLibrary:addNodes(
 
                     local face = Primitives.polygon(points)
                     Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                    Ops.merge(out_mesh, face)
+
+                    -- add a vertical post to the back/top of the design for connecting the coils
+                    local top_y = coil_height - inputs.wire_width + ys[i]
+                    local sx1 = sx + inputs.wire_width * math.cos(rotation + math.pi/2)
+                    local sz1 = sz + inputs.wire_width * math.sin(rotation + math.pi/2)
+                    local sx2 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation + math.pi)
+                    local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation + math.pi)
+                    local sx3 = sx2 + inputs.wire_width * math.cos(rotation + math.pi/2)
+                    local sz3 = sz2 + inputs.wire_width * math.sin(rotation + math.pi/2)
+                    local points = {
+                        vector(sx1, top_y, sz1),
+                        vector(sx, top_y, sz),
+                        vector(sx2, top_y, sz2),
+                        vector(sx3, top_y, sz3),
+                    }
+                    local face = Primitives.polygon(points)
+                    Ops.extrude_with_caps(all_faces_selection, 10, face)
                     Ops.merge(out_mesh, face)
                 end
 
