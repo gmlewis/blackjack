@@ -3,3 +3,7 @@ gen/
 target/
 .cargo/
 .vscode
+
+# handy symlinks
+blackjack
+*.sh
