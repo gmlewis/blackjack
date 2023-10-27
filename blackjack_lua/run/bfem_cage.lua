@@ -28,6 +28,14 @@ NodeLibrary:addNodes(
 
                 local delta_y = (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
 
+                local function new_point(j, start_angle, angle_delta, r, y, points)
+                    local angle = start_angle + j * angle_delta
+                    local x = inputs.pos.x + r * math.cos(angle)
+                    local z = inputs.pos.z + r * math.sin(angle)
+                    local point = vector(x, y, z) -- y is "up"
+                    table.insert(points, point)
+                end
+
                 local out_mesh = {}
                 for i = 0, 2*inputs.num_pairs-1 do
                     local inner_start_angle = i * rail_angle_delta
@@ -47,22 +55,15 @@ NodeLibrary:addNodes(
 
                     local function gen_points()
                         local points = {}
-                        local function new_point(j, start_angle, angle_delta, r)
-                            local angle = start_angle + j * angle_delta
-                            local x = inputs.pos.x + r * math.cos(angle)
-                            local z = inputs.pos.z + r * math.sin(angle)
-                            local point = vector(x, y, z) -- y is "up"
-                            table.insert(points, point)
-                        end
 
                         -- inner points:
                         for j = 0, segments_per_rail do
-                            new_point(j, inner_start_angle, inner_angle_delta, inner_radius)
+                            new_point(j, inner_start_angle, inner_angle_delta, inner_radius, y, points)
                         end
 
                         -- outer points:
                         for j = segments_per_rail, 0, -1 do
-                            new_point(j, outer_start_angle, outer_angle_delta, outer_radius)
+                            new_point(j, outer_start_angle, outer_angle_delta, outer_radius, y, points)
                         end
 
                         return points
@@ -92,17 +93,10 @@ NodeLibrary:addNodes(
 
                 local function gen_points(y, inner_start_angle, inner_angle_delta)
                     local points = {}
-                    local function new_point(j, start_angle, angle_delta, r)
-                        local angle = start_angle + j * angle_delta
-                        local x = inputs.pos.x + r * math.cos(angle)
-                        local z = inputs.pos.z + r * math.sin(angle)
-                        local point = vector(x, y, z) -- y is "up"
-                        table.insert(points, point)
-                    end
 
                     -- inner points:
                     for j = 0, segments_per_rail do
-                        new_point(j, inner_start_angle, inner_angle_delta, inner_radius)
+                        new_point(j, inner_start_angle, inner_angle_delta, inner_radius, y, points)
                     end
 
                     return points
