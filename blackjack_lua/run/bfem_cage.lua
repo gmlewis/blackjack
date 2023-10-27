@@ -120,6 +120,7 @@ NodeLibrary:addNodes(
 
                     -- calculate the final point that will be wire_width away from the next wire
                     -- this is the front/bottom of the design
+
                     local t_angle = inner_end_angle
                     if i > 1 then
                         t_angle = rotations[i-1] - connector_dtheta
@@ -134,16 +135,24 @@ NodeLibrary:addNodes(
                     Ops.merge(out_mesh, face)
 
                     -- add a vertical post to the back/top of the design for connecting the coils
+
+                    local top_hww = 0.5 * math.asin(inputs.wire_width / (2 * outer_radius)) -- half wire-width at outer radius in radians
+                    local top_angle = rotation
+                    if i > 1 then
+                        top_angle = rotation - rail_angle_delta/2 + top_hww
+                    end
                     local top_y = coil_height - inputs.wire_width + ys[i]
-                    local sx1 = sx + inputs.wire_width * math.cos(rotation - math.pi/2)
-                    local sz1 = sz + inputs.wire_width * math.sin(rotation - math.pi/2)
-                    local sx2 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation)
-                    local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation)
-                    local sx3 = sx2 + inputs.wire_width * math.cos(rotation - math.pi/2)
-                    local sz3 = sz2 + inputs.wire_width * math.sin(rotation - math.pi/2)
+                    local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle)
+                    local sz4 = inputs.pos.z + connector_radius * math.sin(top_angle)
+                    local sx1 = sx4 + inputs.wire_width * math.cos(top_angle - math.pi/2)
+                    local sz1 = sz4 + inputs.wire_width * math.sin(top_angle - math.pi/2)
+                    local sx2 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(top_angle)
+                    local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(top_angle)
+                    local sx3 = sx2 + inputs.wire_width * math.cos(top_angle - math.pi/2)
+                    local sz3 = sz2 + inputs.wire_width * math.sin(top_angle - math.pi/2)
                     local points = {
                         vector(sx1, top_y, sz1),
-                        vector(sx, top_y, sz),
+                        vector(sx4, top_y, sz4),
                         vector(sx2, top_y, sz2),
                         vector(sx3, top_y, sz3),
                     }
@@ -153,6 +162,7 @@ NodeLibrary:addNodes(
 
                     -- second connection for pair directly opposite first connection
                     -- this is the front/bottom of the design
+
                     local points = gen_points(y, inner_start_angle + math.pi, inner_angle_delta, 1)
                     local sx = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
                     local sz = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
@@ -167,15 +177,17 @@ NodeLibrary:addNodes(
 
                     -- add a vertical post to the back/top of the design for connecting the coils
                     local top_y = coil_height - inputs.wire_width + ys[i]
-                    local sx1 = sx + inputs.wire_width * math.cos(rotation + math.pi/2)
-                    local sz1 = sz + inputs.wire_width * math.sin(rotation + math.pi/2)
-                    local sx2 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation + math.pi)
-                    local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation + math.pi)
-                    local sx3 = sx2 + inputs.wire_width * math.cos(rotation + math.pi/2)
-                    local sz3 = sz2 + inputs.wire_width * math.sin(rotation + math.pi/2)
+                    local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle + math.pi)
+                    local sz4 = inputs.pos.z + connector_radius * math.sin(top_angle + math.pi)
+                    local sx1 = sx4 + inputs.wire_width * math.cos(top_angle + math.pi/2)
+                    local sz1 = sz4 + inputs.wire_width * math.sin(top_angle + math.pi/2)
+                    local sx2 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(top_angle + math.pi)
+                    local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(top_angle + math.pi)
+                    local sx3 = sx2 + inputs.wire_width * math.cos(top_angle + math.pi/2)
+                    local sz3 = sz2 + inputs.wire_width * math.sin(top_angle + math.pi/2)
                     local points = {
                         vector(sx1, top_y, sz1),
-                        vector(sx, top_y, sz),
+                        vector(sx4, top_y, sz4),
                         vector(sx2, top_y, sz2),
                         vector(sx3, top_y, sz3),
                     }
