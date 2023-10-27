@@ -136,9 +136,10 @@ NodeLibrary:addNodes(
 
                     -- add a vertical post to the back/top of the design for connecting the coils
 
-                    local top_hww = 0.5 * math.asin(inputs.wire_width / (2 * outer_radius)) -- half wire-width at outer radius in radians
                     local top_angle = rotation
                     if i > 1 then
+                        -- half wire-width at outer radius in radians
+                        local top_hww = 0.5 * math.asin(inputs.wire_width / (2 * outer_radius))
                         top_angle = rotation - rail_angle_delta/2 + top_hww
                     end
                     local top_y = coil_height - inputs.wire_width + ys[i]
@@ -159,6 +160,22 @@ NodeLibrary:addNodes(
                     local face = Primitives.polygon(points)
                     Ops.extrude_with_caps(all_faces_selection, 10, face)
                     Ops.merge(out_mesh, face)
+                    -- for all but the first connector, the helix needs to be connected to the shifted connector
+                    if i > 1 then
+                        local sx5 = inputs.pos.x + connector_radius * math.cos(rotation)
+                        local sz5 = inputs.pos.z + connector_radius * math.sin(rotation)
+                        local sx6 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation)
+                        local sz6 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation)
+                        local points = {
+                            vector(sx5, top_y, sz5),
+                            vector(sx6, top_y, sz6),
+                            vector(sx2, top_y, sz2),
+                            vector(sx4, top_y, sz4),
+                        }
+                        local face = Primitives.polygon(points)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        Ops.merge(out_mesh, face)
+                    end
 
                     -- second connection for pair directly opposite first connection
                     -- this is the front/bottom of the design
@@ -176,6 +193,7 @@ NodeLibrary:addNodes(
                     Ops.merge(out_mesh, face)
 
                     -- add a vertical post to the back/top of the design for connecting the coils
+
                     local top_y = coil_height - inputs.wire_width + ys[i]
                     local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle + math.pi)
                     local sz4 = inputs.pos.z + connector_radius * math.sin(top_angle + math.pi)
@@ -194,6 +212,22 @@ NodeLibrary:addNodes(
                     local face = Primitives.polygon(points)
                     Ops.extrude_with_caps(all_faces_selection, 10, face)
                     Ops.merge(out_mesh, face)
+                    -- for all but the first connector, the helix needs to be connected to the shifted connector
+                    if i > 1 then
+                        local sx5 = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
+                        local sz5 = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
+                        local sx6 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation + math.pi)
+                        local sz6 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation + math.pi)
+                        local points = {
+                            vector(sx5, top_y, sz5),
+                            vector(sx6, top_y, sz6),
+                            vector(sx2, top_y, sz2),
+                            vector(sx4, top_y, sz4),
+                        }
+                        local face = Primitives.polygon(points)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        Ops.merge(out_mesh, face)
+                    end
                 end
 
                 return {
