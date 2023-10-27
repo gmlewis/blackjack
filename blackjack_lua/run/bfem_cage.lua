@@ -71,11 +71,12 @@ NodeLibrary:addNodes(
                     end
 
                     local new_mesh = Primitives.polygon(gen_points())
-                    Ops.extrude_with_caps(all_faces_selection, extrude_height, new_mesh)
 
                     if i == 0 then
+                        Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length, new_mesh)
                         out_mesh = new_mesh
                     else
+                        Ops.extrude_with_caps(all_faces_selection, extrude_height, new_mesh)
                         Ops.merge(out_mesh, new_mesh)
                     end
                 end
@@ -190,6 +191,7 @@ NodeLibrary:addNodes(
             inputs = {
                 P.v3("pos", vector(0, 0, 0)),  -- pos is lowered by wire_width/2
                 P.v3("size", vector(1, 0, 1)),  -- wire_width/2 + wire_gap is added to size.
+                P.scalar("connector_length", {default=10, min=0, soft_max = 33}),
                 P.scalar("shift_mixer", {default = 1, min = -1, soft_max = 1}),
                 P.scalar("thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
