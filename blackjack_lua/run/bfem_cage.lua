@@ -144,7 +144,10 @@ NodeLibrary:addNodes(
                     local sz = inputs.pos.z + connector_radius * math.sin(rotation)
 
                     -- calculate the final point that will be wire_width away from the next wire
-                    local t_angle = inner_end_angle -- rotation + connector_dtheta
+                    local t_angle = inner_end_angle
+                    if i > 1 then
+                        t_angle = rotations[i-1] - connector_dtheta
+                    end
                     local tx = inputs.pos.x + connector_radius * math.cos(t_angle)
                     local tz = inputs.pos.z + connector_radius * math.sin(t_angle)
                     table.insert(points, vector(tx, y, tz))
