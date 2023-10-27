@@ -45,7 +45,7 @@ NodeLibrary:addNodes(
 
                     local y = lower_y + ((inputs.num_pairs-i) % inputs.num_pairs) * delta_y
 
-                    local function gen_points(dir)
+                    local function gen_points()
                         local points = {}
                         local function new_point(j, start_angle, angle_delta, r)
                             local angle = start_angle + j * angle_delta
@@ -65,23 +65,11 @@ NodeLibrary:addNodes(
                             new_point(j, outer_start_angle, outer_angle_delta, outer_radius)
                         end
 
-                        if dir < 0 then
-                            local rev = {}
-                            for i=#points, 1, -1 do
-                                rev[#rev+1] = points[i]
-                            end
-                            return rev
-                        end
-
                         return points
                     end
 
-                    local new_mesh = Primitives.polygon(gen_points(1))
-                    Ops.extrude(all_faces_selection, extrude_height, new_mesh)
-
-                    -- Now generate the extrusion caps by going the other direction
-                    local face_mesh = Primitives.polygon(gen_points(-1))
-                    Ops.merge(new_mesh, face_mesh)
+                    local new_mesh = Primitives.polygon(gen_points())
+                    Ops.extrude_with_caps(all_faces_selection, extrude_height, new_mesh)
 
                     if i == 0 then
                         out_mesh = new_mesh
@@ -102,7 +90,7 @@ NodeLibrary:addNodes(
                     line_lengths[i] = (inputs.num_pairs - i + 1) * (inputs.wire_width + inputs.wire_gap)
                 end
 
-                local function gen_points(y, inner_start_angle, inner_angle_delta, dir)
+                local function gen_points(y, inner_start_angle, inner_angle_delta)
                     local points = {}
                     local function new_point(j, start_angle, angle_delta, r)
                         local angle = start_angle + j * angle_delta
@@ -117,14 +105,6 @@ NodeLibrary:addNodes(
                         new_point(j, inner_start_angle, inner_angle_delta, inner_radius)
                     end
 
-                    if dir < 0 then
-                        local rev = {}
-                        for i=#points, 1, -1 do
-                            rev[#rev+1] = points[i]
-                        end
-                        return rev
-                    end
-
                     return points
                 end
 
@@ -135,8 +115,7 @@ NodeLibrary:addNodes(
                     local inner_start_angle = -(i-1) * rail_angle_delta
                     local inner_end_angle = -(i-2) * rail_angle_delta - 2*inner_dtheta
                     local inner_angle_delta = (inner_end_angle - inner_start_angle) / segments_per_rail
-                    local points = gen_points(y, inner_start_angle, inner_angle_delta, 1)
-                    local cap_points = gen_points(y, inner_start_angle, inner_angle_delta, -1)
+                    local points = gen_points(y, inner_start_angle, inner_angle_delta)
 
                     local connector_radius = inner_radius - line_length
                     local connector_dtheta = math.asin(inputs.wire_gap / (2 * connector_radius))
@@ -153,18 +132,12 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(tx, y, tz))
                     table.insert(points, vector(sx, y, sz))
 
-                    table.insert(cap_points, vector(sx, y, sz))
-                    table.insert(cap_points, vector(tx, y, tz))
-
                     local face = Primitives.polygon(points)
-                    Ops.extrude(all_faces_selection, inputs.wire_width, face)
+                    Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                     Ops.merge(out_mesh, face)
-                    local cap_face = Primitives.polygon(cap_points)
-                    Ops.merge(out_mesh, cap_face)
 
                     -- second connection for pair directly opposite first connection
                     local points = gen_points(y, inner_start_angle + math.pi, inner_angle_delta, 1)
-                    local cap_points = gen_points(y, inner_start_angle + math.pi, inner_angle_delta, -1)
                     local sx = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
                     local sz = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
                     local tx = inputs.pos.x + connector_radius * math.cos(t_angle + math.pi)
@@ -172,14 +145,9 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(tx, y, tz))
                     table.insert(points, vector(sx, y, sz))
 
-                    table.insert(cap_points, vector(sx, y, sz))
-                    table.insert(cap_points, vector(tx, y, tz))
-
                     local face = Primitives.polygon(points)
-                    Ops.extrude(all_faces_selection, inputs.wire_width, face)
+                    Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                     Ops.merge(out_mesh, face)
-                    local cap_face = Primitives.polygon(cap_points)
-                    Ops.merge(out_mesh, cap_face)
                 end
 
                 return {
