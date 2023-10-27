@@ -162,13 +162,24 @@ NodeLibrary:addNodes(
                     local cap_face = Primitives.polygon(cap_points)
                     Ops.merge(out_mesh, cap_face)
 
-                    -- -- second connection for pair directly opposite first connection
-                    -- local sx = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
-                    -- local sz = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
-                    -- local ex = inputs.pos.x + inner_radius * math.cos(rotation + math.pi)
-                    -- local ez = inputs.pos.z + inner_radius * math.sin(rotation + math.pi)
-                    -- local line = Primitives.line(vector(sx,y,sz), vector(ex,y,ez), 1)
-                    -- Ops.merge(out_mesh, line)
+                    -- second connection for pair directly opposite first connection
+                    local points = gen_points(y, inner_start_angle + math.pi, inner_angle_delta, 1)
+                    local cap_points = gen_points(y, inner_start_angle + math.pi, inner_angle_delta, -1)
+                    local sx = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
+                    local sz = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
+                    local tx = inputs.pos.x + connector_radius * math.cos(t_angle + math.pi)
+                    local tz = inputs.pos.z + connector_radius * math.sin(t_angle + math.pi)
+                    table.insert(points, vector(tx, y, tz))
+                    table.insert(points, vector(sx, y, sz))
+
+                    table.insert(cap_points, vector(sx, y, sz))
+                    table.insert(cap_points, vector(tx, y, tz))
+
+                    local face = Primitives.polygon(points)
+                    Ops.extrude(all_faces_selection, inputs.wire_width, face)
+                    Ops.merge(out_mesh, face)
+                    local cap_face = Primitives.polygon(cap_points)
+                    Ops.merge(out_mesh, cap_face)
                 end
 
                 return {
