@@ -170,7 +170,7 @@ NodeLibrary:addNodes(
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
                     else
-                        -- this is the "up" part of the "up-and-over" connector on the back/top of the design:
+                        -- this is the "up" part of the "up-and-over" connector on the back/top of the design for the odd coils:
                         local points = {
                             vector(sx1, top_y, sz1),
                             vector(sx4, top_y, sz4),
@@ -181,7 +181,7 @@ NodeLibrary:addNodes(
                         local over_height = 2 * inputs.wire_width + inputs.wire_gap
                         Ops.extrude_with_caps(all_faces_selection, over_height, face)
                         Ops.merge(out_mesh, face)
-                        -- this is the "over" part of the "up-and-over" connector on the back/top of the design:
+                        -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the odd coils:
                         local over_start_angle = -(i) * rail_angle_delta
                         local points = gen_points(top_y + over_height, over_start_angle, inner_angle_delta)
                         table.insert(points, vector(sx2, top_y + over_height, sz2))
@@ -260,6 +260,27 @@ NodeLibrary:addNodes(
                     end
                     Ops.extrude_with_caps(all_faces_selection, extrude_amount, face)
                     Ops.merge(out_mesh, face)
+                    if i < inputs.num_pairs then
+                        -- this is the "up" part of the "up-and-over" connector on the back/top of the design for the even coils:
+                        local points = {
+                            vector(sx1, top_y, sz1),
+                            vector(sx4, top_y, sz4),
+                            vector(sx2, top_y, sz2),
+                            vector(sx3, top_y, sz3),
+                        }
+                        local face = Primitives.polygon(points)
+                        local over_height = 2 * inputs.wire_width + inputs.wire_gap
+                        Ops.extrude_with_caps(all_faces_selection, over_height, face)
+                        Ops.merge(out_mesh, face)
+                        -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the even coils:
+                        local over_start_angle = -(i) * rail_angle_delta + math.pi
+                        local points = gen_points(top_y + over_height, over_start_angle, inner_angle_delta)
+                        table.insert(points, vector(sx2, top_y + over_height, sz2))
+                        table.insert(points, vector(sx3, top_y + over_height, sz3))
+                        local face = Primitives.polygon(points)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        Ops.merge(out_mesh, face)
+                    end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
                     if i > 1 then
                         local sx5 = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
