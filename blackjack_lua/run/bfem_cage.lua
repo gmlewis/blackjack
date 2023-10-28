@@ -27,7 +27,8 @@ NodeLibrary:addNodes(
                 local inner_dtheta = math.asin(inputs.wire_gap / (2 * inner_radius))
                 local outer_dtheta = math.asin(inputs.wire_gap / (2 * outer_radius))
 
-                local delta_y = (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1)
+                local delta_y = inputs.num_pairs > 1 and
+                    (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1) or 0
 
                 local function new_point(j, start_angle, angle_delta, r, y, points)
                     local angle = start_angle + j * angle_delta
