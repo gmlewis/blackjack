@@ -73,6 +73,7 @@ NodeLibrary:addNodes(
                     local new_mesh = Primitives.polygon(gen_points())
 
                     if i == 0 then
+                        -- final output connector of coil 1 (at outer edge)
                         Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length, new_mesh)
                         out_mesh = new_mesh
                     else
@@ -254,12 +255,29 @@ NodeLibrary:addNodes(
                         vector(sx3, top_y, sz3),
                     }
                     local face = Primitives.polygon(points)
-                    local extrude_amount = 2*inputs.wire_width+inputs.wire_gap
-                    if i >= inputs.num_pairs then  -- final output connector of last coil
-                        extrude_amount = inputs.wire_width + inputs.connector_length
+                    if i >= inputs.num_pairs then  -- final output connector of last coil (closer to center)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        Ops.merge(out_mesh, face)
+                        -- generate inner final output connector of last coil with same thickness as other connector
+                        local angle_diff = rail_angle_delta - 2*outer_dtheta
+                        local sx2 = inputs.pos.x + (connector_radius - inputs.thickness) * math.cos(top_angle + math.pi)
+                        local sz2 = inputs.pos.z + (connector_radius - inputs.thickness) * math.sin(top_angle + math.pi)
+                        local sx3 = inputs.pos.x + (connector_radius - inputs.thickness) * math.cos(top_angle + math.pi - angle_diff)
+                        local sz3 = inputs.pos.z + (connector_radius - inputs.thickness) * math.sin(top_angle + math.pi - angle_diff)
+                        local points = {
+                            vector(sx4, top_y, sz4),
+                            vector(sx1, top_y, sz1),
+                            vector(sx3, top_y, sz3),
+                            vector(sx2, top_y, sz2),
+                        }
+                        local face = Primitives.polygon(points)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length, face)
+                        Ops.merge(out_mesh, face)
+                    else
+                        local extrude_amount = 2 * inputs.wire_width + inputs.wire_gap
+                        Ops.extrude_with_caps(all_faces_selection, extrude_amount, face)
+                        Ops.merge(out_mesh, face)
                     end
-                    Ops.extrude_with_caps(all_faces_selection, extrude_amount, face)
-                    Ops.merge(out_mesh, face)
                     if i < inputs.num_pairs then
                         -- this is the "up" part of the "up-and-over" connector on the back/top of the design for the even coils:
                         local points = {
