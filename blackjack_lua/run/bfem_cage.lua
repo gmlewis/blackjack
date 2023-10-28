@@ -46,6 +46,7 @@ NodeLibrary:addNodes(
                     table.insert(points, point)
                 end
 
+                local axial_connector_top_ys = {}
                 local out_mesh = {}
                 for i = 0, 2*inputs.num_pairs-1 do
                     local inner_start_angle = i * rail_angle_delta
@@ -62,6 +63,7 @@ NodeLibrary:addNodes(
                     end
 
                     local y = lower_y + ((inputs.num_pairs-i) % inputs.num_pairs) * delta_y
+                    axial_connector_top_ys[i+1] = y + extrude_height
 
                     local function gen_points()
                         local points = {}
@@ -76,7 +78,7 @@ NodeLibrary:addNodes(
                         return points
                     end
 
-                    local new_mesh = Primitives.polygon(gen_points())  -- axial connector
+                    local new_mesh = Primitives.polygon(gen_points())  -- this is the axial connector itself
 
                     if i == 0 then
                         -- final output connector of coil 1 (at outer edge)
@@ -102,12 +104,10 @@ NodeLibrary:addNodes(
 
                 local function gen_points(y, inner_start_angle, inner_angle_delta)
                     local points = {}
-
                     -- inner points:
                     for j = 0, segments_per_rail do
                         new_point(j, inner_start_angle, inner_angle_delta, inner_radius, y, points)
                     end
-
                     return points
                 end
 
@@ -134,6 +134,7 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(tx, y, tz))
                     table.insert(points, vector(sx, y, sz))
 
+                    -- this connects the bottom/front helix to the axial connector
                     local face = Primitives.polygon(points)
                     Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                     Ops.merge(out_mesh, face)
@@ -152,7 +153,7 @@ NodeLibrary:addNodes(
                             top_angle = rotation - 2 * top_hww
                         end
                     end
-                    local top_y = coil_height - inputs.wire_width + ys[i]
+                    local top_helix_y = coil_height - inputs.wire_width + ys[i]
                     local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle)
                     local sz4 = inputs.pos.z + connector_radius * math.sin(top_angle)
                     local sx1 = sx4 + inputs.wire_width * math.cos(top_angle - math.pi/2)
@@ -164,34 +165,33 @@ NodeLibrary:addNodes(
                     if i >= inputs.num_pairs then
                         -- the final odd coil doesn't need an up-and-over
                         -- but instead connects directly to the outer axial connector input to coil 2
-                        local angle_diff = math.asin(inputs.wire_width / connector_radius)
+                        local angle_diff = rail_angle_delta - 2*outer_dtheta
                         local sx1 = inputs.pos.x + connector_radius * math.cos(top_angle - angle_diff)
                         local sz1 = inputs.pos.z + connector_radius * math.sin(top_angle - angle_diff)
-                        local points = gen_points(top_y + inputs.wire_width, top_angle, -inner_angle_delta)
                         -- TODO: the inner points are not lining up correctly with the outer axial connector
-                        points = reverse(points)
-                        table.insert(points, vector(sx4, top_y + inputs.wire_width, sz4))
-                        table.insert(points, vector(sx1, top_y + inputs.wire_width, sz1))
+                        local points = gen_points(top_helix_y + inputs.wire_width, math.pi, inner_angle_delta)
+                        table.insert(points, vector(sx4, top_helix_y + inputs.wire_width, sz4))
+                        table.insert(points, vector(sx1, top_helix_y + inputs.wire_width, sz1))
                         local face = Primitives.polygon(points)
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
                     else
                         -- this is the "up" part of the "up-and-over" connector on the back/top of the design for the odd coils:
                         local points = {
-                            vector(sx1, top_y, sz1),
-                            vector(sx4, top_y, sz4),
-                            vector(sx2, top_y, sz2),
-                            vector(sx3, top_y, sz3),
+                            vector(sx1, top_helix_y, sz1),
+                            vector(sx4, top_helix_y, sz4),
+                            vector(sx2, top_helix_y, sz2),
+                            vector(sx3, top_helix_y, sz3),
                         }
                         local face = Primitives.polygon(points)
-                        local over_height = 2 * inputs.wire_width + inputs.wire_gap
+                        local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
                         Ops.extrude_with_caps(all_faces_selection, over_height, face)
                         Ops.merge(out_mesh, face)
                         -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the odd coils:
                         local over_start_angle = -(i) * rail_angle_delta
-                        local points = gen_points(top_y + over_height, over_start_angle, inner_angle_delta)
-                        table.insert(points, vector(sx2, top_y + over_height, sz2))
-                        table.insert(points, vector(sx3, top_y + over_height, sz3))
+                        local points = gen_points(top_helix_y + over_height, over_start_angle, inner_angle_delta)
+                        table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
+                        table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                         local face = Primitives.polygon(points)
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
@@ -203,10 +203,10 @@ NodeLibrary:addNodes(
                         local sx6 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation)
                         local sz6 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation)
                         local points = {
-                            vector(sx5, top_y, sz5),
-                            vector(sx6, top_y, sz6),
-                            vector(sx2, top_y, sz2),
-                            vector(sx4, top_y, sz4),
+                            vector(sx5, top_helix_y, sz5),
+                            vector(sx6, top_helix_y, sz6),
+                            vector(sx2, top_helix_y, sz2),
+                            vector(sx4, top_helix_y, sz4),
                         }
                         local face = Primitives.polygon(points)
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
@@ -237,7 +237,7 @@ NodeLibrary:addNodes(
                         local top_ww = math.asin(inputs.wire_width / (2 * outer_radius))
                         top_angle = rotation - top_ww
                     end
-                    local top_y = coil_height - inputs.wire_width + ys[i]
+                    local top_helix_y = coil_height - inputs.wire_width + ys[i]
                     local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle + math.pi)
                     local sz4 = inputs.pos.z + connector_radius * math.sin(top_angle + math.pi)
                     local sx1 = sx4 + inputs.wire_width * math.cos(top_angle + math.pi/2)
@@ -254,10 +254,10 @@ NodeLibrary:addNodes(
                         sz3 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(top_angle + math.pi - angle_diff)
                     end
                     local points = {
-                        vector(sx1, top_y, sz1),
-                        vector(sx4, top_y, sz4),
-                        vector(sx2, top_y, sz2),
-                        vector(sx3, top_y, sz3),
+                        vector(sx1, top_helix_y, sz1),
+                        vector(sx4, top_helix_y, sz4),
+                        vector(sx2, top_helix_y, sz2),
+                        vector(sx3, top_helix_y, sz3),
                     }
                     local face = Primitives.polygon(points)
                     if i >= inputs.num_pairs then  -- final output connector of last coil (closer to center)
@@ -270,10 +270,10 @@ NodeLibrary:addNodes(
                         local sx3 = inputs.pos.x + (connector_radius - inputs.thickness) * math.cos(top_angle + math.pi - angle_diff)
                         local sz3 = inputs.pos.z + (connector_radius - inputs.thickness) * math.sin(top_angle + math.pi - angle_diff)
                         local points = {
-                            vector(sx4, top_y, sz4),
-                            vector(sx1, top_y, sz1),
-                            vector(sx3, top_y, sz3),
-                            vector(sx2, top_y, sz2),
+                            vector(sx4, top_helix_y, sz4),
+                            vector(sx1, top_helix_y, sz1),
+                            vector(sx3, top_helix_y, sz3),
+                            vector(sx2, top_helix_y, sz2),
                         }
                         local face = Primitives.polygon(points)
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length, face)
@@ -286,20 +286,20 @@ NodeLibrary:addNodes(
                     if i < inputs.num_pairs then
                         -- this is the "up" part of the "up-and-over" connector on the back/top of the design for the even coils:
                         local points = {
-                            vector(sx1, top_y, sz1),
-                            vector(sx4, top_y, sz4),
-                            vector(sx2, top_y, sz2),
-                            vector(sx3, top_y, sz3),
+                            vector(sx1, top_helix_y, sz1),
+                            vector(sx4, top_helix_y, sz4),
+                            vector(sx2, top_helix_y, sz2),
+                            vector(sx3, top_helix_y, sz3),
                         }
                         local face = Primitives.polygon(points)
-                        local over_height = 2 * inputs.wire_width + inputs.wire_gap
+                        local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
                         Ops.extrude_with_caps(all_faces_selection, over_height, face)
                         Ops.merge(out_mesh, face)
                         -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the even coils:
                         local over_start_angle = -(i) * rail_angle_delta + math.pi
-                        local points = gen_points(top_y + over_height, over_start_angle, inner_angle_delta)
-                        table.insert(points, vector(sx2, top_y + over_height, sz2))
-                        table.insert(points, vector(sx3, top_y + over_height, sz3))
+                        local points = gen_points(top_helix_y + over_height, over_start_angle, inner_angle_delta)
+                        table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
+                        table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                         local face = Primitives.polygon(points)
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
@@ -311,10 +311,10 @@ NodeLibrary:addNodes(
                         local sx6 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation + math.pi)
                         local sz6 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation + math.pi)
                         local points = {
-                            vector(sx5, top_y, sz5),
-                            vector(sx6, top_y, sz6),
-                            vector(sx2, top_y, sz2),
-                            vector(sx4, top_y, sz4),
+                            vector(sx5, top_helix_y, sz5),
+                            vector(sx6, top_helix_y, sz6),
+                            vector(sx2, top_helix_y, sz2),
+                            vector(sx4, top_helix_y, sz4),
                         }
                         local face = Primitives.polygon(points)
                         local extrude_amount =
