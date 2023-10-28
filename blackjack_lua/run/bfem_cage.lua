@@ -135,12 +135,18 @@ NodeLibrary:addNodes(
                     Ops.merge(out_mesh, face)
 
                     -- add a vertical post to the back/top of the design for connecting the coils
+                    -- this is the back/top of the design
+                    -- these are the odd coils (1, 3, 5, etc.)
 
                     local top_angle = rotation
                     if i > 1 then
                         -- half wire-width at outer radius in radians
                         local top_hww = 0.5 * math.asin(inputs.wire_width / (2 * outer_radius))
                         top_angle = rotation - rail_angle_delta/2 + top_hww
+                        if i >= inputs.num_pairs then  -- final output connector of odd coils
+                            -- wire-width at outer radius in radians
+                            top_angle = rotation - 2 * top_hww
+                        end
                     end
                     local top_y = coil_height - inputs.wire_width + ys[i]
                     local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle)
@@ -151,15 +157,29 @@ NodeLibrary:addNodes(
                     local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(top_angle)
                     local sx3 = sx2 + inputs.wire_width * math.cos(top_angle - math.pi/2)
                     local sz3 = sz2 + inputs.wire_width * math.sin(top_angle - math.pi/2)
-                    local points = {
-                        vector(sx1, top_y, sz1),
-                        vector(sx4, top_y, sz4),
-                        vector(sx2, top_y, sz2),
-                        vector(sx3, top_y, sz3),
-                    }
-                    local face = Primitives.polygon(points)
-                    Ops.extrude_with_caps(all_faces_selection, 10, face)
-                    Ops.merge(out_mesh, face)
+                    if i >= inputs.num_pairs then
+                        -- the final odd coil doesn't need an up-and-over
+                        -- but instead connects directly to the outer axial connector
+                        local angle_diff = rail_angle_delta - 2*outer_dtheta
+                        local sx1 = inputs.pos.x + connector_radius * math.cos(top_angle - angle_diff)
+                        local sz1 = inputs.pos.z + connector_radius * math.sin(top_angle - angle_diff)
+                        local points = gen_points(top_y + inputs.wire_width, math.pi, inner_angle_delta)
+                        table.insert(points, vector(sx4, top_y + inputs.wire_width, sz4))
+                        table.insert(points, vector(sx1, top_y + inputs.wire_width, sz1))
+                        local face = Primitives.polygon(points)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        Ops.merge(out_mesh, face)
+                    else
+                        local points = {
+                            vector(sx1, top_y, sz1),
+                            vector(sx4, top_y, sz4),
+                            vector(sx2, top_y, sz2),
+                            vector(sx3, top_y, sz3),
+                        }
+                        local face = Primitives.polygon(points)
+                        Ops.extrude_with_caps(all_faces_selection, 10, face)  -- todo
+                        Ops.merge(out_mesh, face)
+                    end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
                     if i > 1 then
                         local sx5 = inputs.pos.x + connector_radius * math.cos(rotation)
@@ -193,8 +213,10 @@ NodeLibrary:addNodes(
                     Ops.merge(out_mesh, face)
 
                     -- add a vertical post to the back/top of the design for connecting the coils
+                    -- this is the back/top of the design
+                    -- these are the even coils (2, 4, 6, etc.)
 
-                    if i >= inputs.num_pairs then
+                    if i >= inputs.num_pairs then  -- final output connector of last coil
                         -- wire-width at outer radius in radians
                         local top_ww = math.asin(inputs.wire_width / (2 * outer_radius))
                         top_angle = rotation - top_ww
@@ -208,7 +230,7 @@ NodeLibrary:addNodes(
                     local sz2 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(top_angle + math.pi)
                     local sx3 = sx2 + inputs.wire_width * math.cos(top_angle + math.pi/2)
                     local sz3 = sz2 + inputs.wire_width * math.sin(top_angle + math.pi/2)
-                    if i >= inputs.num_pairs then
+                    if i >= inputs.num_pairs then  -- final output connector of last coil
                         local angle_diff = rail_angle_delta - 2*outer_dtheta
                         sx1 = inputs.pos.x + connector_radius * math.cos(top_angle + math.pi - angle_diff)
                         sz1 = inputs.pos.z + connector_radius * math.sin(top_angle + math.pi - angle_diff)
@@ -222,8 +244,8 @@ NodeLibrary:addNodes(
                         vector(sx3, top_y, sz3),
                     }
                     local face = Primitives.polygon(points)
-                    local extrude_amount = 10 -- todo
-                    if i >= inputs.num_pairs then
+                    local extrude_amount = 10  -- todo
+                    if i >= inputs.num_pairs then  -- final output connector of last coil
                         extrude_amount = inputs.wire_width + inputs.connector_length
                     end
                     Ops.extrude_with_caps(all_faces_selection, extrude_amount, face)
@@ -241,11 +263,8 @@ NodeLibrary:addNodes(
                             vector(sx4, top_y, sz4),
                         }
                         local face = Primitives.polygon(points)
-                        local extrude_amount = inputs.wire_width
-                        -- if i >= inputs.num_pairs then
-                        --     extrude_amount += inputs.connector_length
-                        -- end
-                        Ops.extrude_with_caps(all_faces_selection, extrude_amount, face)
+                        local extrude_amount =
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
                     end
                 end
