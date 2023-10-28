@@ -30,6 +30,14 @@ NodeLibrary:addNodes(
                 local delta_y = inputs.num_pairs > 1 and
                     (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1) or 0
 
+                local function reverse(points)
+                    local rev = {}
+                    for i=#points, 1, -1 do
+                        rev[#rev+1] = points[i]
+                    end
+                    return rev
+                end
+
                 local function new_point(j, start_angle, angle_delta, r, y, points)
                     local angle = start_angle + j * angle_delta
                     local x = inputs.pos.x + r * math.cos(angle)
@@ -57,21 +65,18 @@ NodeLibrary:addNodes(
 
                     local function gen_points()
                         local points = {}
-
                         -- inner points:
                         for j = 0, segments_per_rail do
                             new_point(j, inner_start_angle, inner_angle_delta, inner_radius, y, points)
                         end
-
                         -- outer points:
                         for j = segments_per_rail, 0, -1 do
                             new_point(j, outer_start_angle, outer_angle_delta, outer_radius, y, points)
                         end
-
                         return points
                     end
 
-                    local new_mesh = Primitives.polygon(gen_points())
+                    local new_mesh = Primitives.polygon(gen_points())  -- axial connector
 
                     if i == 0 then
                         -- final output connector of coil 1 (at outer edge)
@@ -142,7 +147,7 @@ NodeLibrary:addNodes(
                         -- half wire-width at outer radius in radians
                         local top_hww = 0.5 * math.asin(inputs.wire_width / (2 * outer_radius))
                         top_angle = rotation - rail_angle_delta/2 + top_hww
-                        if i >= inputs.num_pairs then  -- final output connector of odd coils
+                        if i >= inputs.num_pairs then  -- final output connector of odd coils that connects to coil 2
                             -- wire-width at outer radius in radians
                             top_angle = rotation - 2 * top_hww
                         end
@@ -158,11 +163,13 @@ NodeLibrary:addNodes(
                     local sz3 = sz2 + inputs.wire_width * math.sin(top_angle - math.pi/2)
                     if i >= inputs.num_pairs then
                         -- the final odd coil doesn't need an up-and-over
-                        -- but instead connects directly to the outer axial connector
-                        local angle_diff = rail_angle_delta - 2*outer_dtheta
+                        -- but instead connects directly to the outer axial connector input to coil 2
+                        local angle_diff = math.asin(inputs.wire_width / connector_radius)
                         local sx1 = inputs.pos.x + connector_radius * math.cos(top_angle - angle_diff)
                         local sz1 = inputs.pos.z + connector_radius * math.sin(top_angle - angle_diff)
-                        local points = gen_points(top_y + inputs.wire_width, math.pi, inner_angle_delta)
+                        local points = gen_points(top_y + inputs.wire_width, top_angle, -inner_angle_delta)
+                        -- TODO: the inner points are not lining up correctly with the outer axial connector
+                        points = reverse(points)
                         table.insert(points, vector(sx4, top_y + inputs.wire_width, sz4))
                         table.insert(points, vector(sx1, top_y + inputs.wire_width, sz1))
                         local face = Primitives.polygon(points)
@@ -189,7 +196,7 @@ NodeLibrary:addNodes(
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
                     end
-                    -- for all but the first connector, the helix needs to be connected to the shifted connector
+                    -- for all but the coil 1, the helix needs to be connected to the shifted back/top "up-and-over" connector
                     if i > 1 then
                         local sx5 = inputs.pos.x + connector_radius * math.cos(rotation)
                         local sz5 = inputs.pos.z + connector_radius * math.sin(rotation)
