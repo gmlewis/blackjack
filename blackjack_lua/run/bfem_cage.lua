@@ -123,10 +123,7 @@ NodeLibrary:addNodes(
                     -- calculate the final point that will be wire_width away from the next wire
                     -- this is the front/bottom of the design
 
-                    local t_angle = inner_end_angle
-                    if i > 1 then
-                        t_angle = rotations[i-1] - connector_dtheta
-                    end
+                    local t_angle = rotation + math.asin(inputs.wire_width / connector_radius)
                     local tx = inputs.pos.x + connector_radius * math.cos(t_angle)
                     local tz = inputs.pos.z + connector_radius * math.sin(t_angle)
                     table.insert(points, vector(tx, y, tz))
