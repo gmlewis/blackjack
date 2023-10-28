@@ -177,7 +177,7 @@ NodeLibrary:addNodes(
                             vector(sx3, top_y, sz3),
                         }
                         local face = Primitives.polygon(points)
-                        Ops.extrude_with_caps(all_faces_selection, 10, face)  -- todo
+                        Ops.extrude_with_caps(all_faces_selection, 2*inputs.wire_width+inputs.wire_gap, face)
                         Ops.merge(out_mesh, face)
                     end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
@@ -244,7 +244,7 @@ NodeLibrary:addNodes(
                         vector(sx3, top_y, sz3),
                     }
                     local face = Primitives.polygon(points)
-                    local extrude_amount = 10  -- todo
+                    local extrude_amount = 2*inputs.wire_width+inputs.wire_gap
                     if i >= inputs.num_pairs then  -- final output connector of last coil
                         extrude_amount = inputs.wire_width + inputs.connector_length
                     end
