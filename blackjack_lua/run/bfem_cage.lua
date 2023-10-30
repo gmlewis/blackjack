@@ -305,7 +305,6 @@ NodeLibrary:addNodes(
                             vector(sx4, top_helix_y, sz4),
                         }
                         local face = Primitives.polygon(points)
-                        local extrude_amount =
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
                     end
