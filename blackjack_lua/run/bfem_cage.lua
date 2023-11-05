@@ -316,15 +316,15 @@ NodeLibrary:addNodes(
             end,
             inputs = {
                 P.v3("pos", vector(0, 0, 0)),  -- pos is lowered by wire_width/2
-                P.v3("size", vector(1, 0, 1)),  -- wire_width/2 + wire_gap is added to size.
+                P.v3("size", vector(10, 0, 10)),  -- wire_width/2 + wire_gap is added to size.
                 P.scalar("connector_length", {default=10, min=0, soft_max = 33}),
                 P.scalar("shift_mixer", {default = 1, min = -1, soft_max = 1}),
                 P.scalar("thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
-                P.scalar("wire_gap", {default = 0.1, min = 0, soft_max = 10}),
+                P.scalar("wire_gap", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_width", {default = 1, min = 0, soft_max = 10}),
                 P.scalar_int("segments", {default = 36, min = 1, soft_max = 360}),
-                P.scalar_int("num_pairs", {default = 5, min = 1, soft_max = 33}),
+                P.scalar_int("num_pairs", {default = 3, min = 1, soft_max = 33}),
             },
             outputs = {P.mesh("out_mesh")},
             returns = "out_mesh"
