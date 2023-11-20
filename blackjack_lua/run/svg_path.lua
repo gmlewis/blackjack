@@ -51,9 +51,9 @@ end
 local cmd_close_path = function(state)
     if #state.points > 0 then
         if state.mesh ~= nil then
-            Ops.merge(state.mesh, Primitives.polygon(state.points))
+            Ops.merge(state.mesh, Primitives.line_from_points(state.points))
         else
-            state.mesh = Primitives.polygon(state.points)
+            state.mesh = Primitives.line_from_points(state.points)
         end
         state.points = {}
     end
@@ -80,18 +80,97 @@ local cmd_line_to_abs = function(state, params)
 end
 
 local cmd_line_to = function(state, params)
-    state.current_pos = state.current_pos + params[1] * state.right + params[2] * state.normal
-    table.insert(state.points, state.current_pos)
+    for i = 1, #params, 2 do
+        state.current_pos = state.current_pos + params[i] * state.right + params[i+1] * state.normal
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_line_horizontal_abs = function(state, params)
+    for i = 1, #params do
+        state.current_pos = state.pos + params[i] * state.right
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_line_horizontal = function(state, params)
+    for i = 1, #params do
+        state.current_pos = state.current_pos + params[i] * state.right
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_line_vertical_abs = function(state, params)
+    for i = 1, #params do
+        state.current_pos = state.pos + params[i] * state.normal
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_line_vertical = function(state, params)
+    for i = 1, #params do
+        state.current_pos = state.current_pos + params[i] * state.normal
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cubic_to = function(state, p0, p1, p2, p3)
+    for i = 1, state.segments do
+        local t = i / state.segments
+        local t1 = 1.0 - t
+        local f = t1 * t1 * t1
+        state.current_pos = p0 * f
+        f = 3.0 * t1 * t1 * t
+        state.current_pos = state.current_pos + p1 * f
+        f = 3.0 * t1 * t * t
+        state.current_pos = state.current_pos + p2 * f
+        f = t * t * t
+        state.current_pos = state.current_pos + p3 * f
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_cubic_bezier_curve_abs = function(state, params)
+    for i = 1, #params, 6 do
+        local p0 = state.current_pos
+        local p1 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
+        local p2 = state.pos + params[i+2] * state.right + params[i+3] * state.normal
+        local ep = state.pos + params[i+4] * state.right + params[i+5] * state.normal
+        state = cubic_to(state, p0, p1, p2, ep)
+    end
+    return state
+end
+
+local cmd_cubic_bezier_curve = function(state, params)
+    for i = 1, #params, 6 do
+        local p0 = state.current_pos
+        local p1 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
+        local p2 = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
+        local ep = state.current_pos + params[i+4] * state.right + params[i+5] * state.normal
+        state = cubic_to(state, p0, p1, p2, ep)
+    end
     return state
 end
 
 local all_commands = {
+    Z = cmd_close_path,
+    z = cmd_close_path,
     M = cmd_move_to_abs,
     m = cmd_move_to,
     L = cmd_line_to_abs,
     l = cmd_line_to,
-    Z = cmd_close_path,
-    z = cmd_close_path,
+    H = cmd_line_horizontal_abs,
+    h = cmd_line_horizontal,
+    V = cmd_line_vertical_abs,
+    v = cmd_line_vertical,
+    C = cmd_cubic_bezier_curve_abs,
+    c = cmd_cubic_bezier_curve,
 }
 
 -- A path_step represents a single path step.
@@ -100,12 +179,12 @@ local all_commands = {
 -- with each command having an "absolute" (upper case) and
 -- a "relative" (lower case) version.
 --
+-- ClosePath: Z, z
 -- MoveTo: M, m
 -- LineTo: L, l, H, h, V, v
 -- Cubic Bézier Curve: C, c, S, s
 -- Quadratic Bézier Curve: Q, q, T, t
 -- Elliptical Arc Curve: A, a
--- ClosePath: Z, z
 --
 -- The 'C' field is the command, and the 'P' field is the numeric parameters.
 local process_path_step = function(state, path_step)
