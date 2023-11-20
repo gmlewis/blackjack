@@ -143,6 +143,8 @@ local cmd_cubic_bezier_curve_abs = function(state, params)
         local p2 = state.pos + params[i+2] * state.right + params[i+3] * state.normal
         local ep = state.pos + params[i+4] * state.right + params[i+5] * state.normal
         state = cubic_to(state, p0, p1, p2, ep)
+        state.last_p2 = p2
+        state.last_p3 = ep
     end
     return state
 end
@@ -154,6 +156,40 @@ local cmd_cubic_bezier_curve = function(state, params)
         local p2 = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
         local ep = state.current_pos + params[i+4] * state.right + params[i+5] * state.normal
         state = cubic_to(state, p0, p1, p2, ep)
+        state.last_p2 = p2
+        state.last_p3 = ep
+    end
+    return state
+end
+
+local cmd_smooth_cubic_bezier_curve_abs = function(state, params)
+    for i = 1, #params, 4 do
+        local p0 = state.current_pos
+        local p1 = state.pos
+        if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
+            p1 = state.pos + state.last_p3 - state.last_p2
+        end
+        local p2 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
+        local ep = state.pos + params[i+2] * state.right + params[i+3] * state.normal
+        state = cubic_to(state, p0, p1, p2, ep)
+        state.last_p2 = p2
+        state.last_p3 = ep
+    end
+    return state
+end
+
+local cmd_smooth_cubic_bezier_curve = function(state, params)
+    for i = 1, #params, 4 do
+        local p0 = state.current_pos
+        local p1 = state.current_pos
+        if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
+            p1 = state.current_pos + state.last_p3 - state.last_p2
+        end
+        local p2 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
+        local ep = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
+        state = cubic_to(state, p0, p1, p2, ep)
+        state.last_p2 = p2
+        state.last_p3 = ep
     end
     return state
 end
@@ -171,6 +207,8 @@ local all_commands = {
     v = cmd_line_vertical,
     C = cmd_cubic_bezier_curve_abs,
     c = cmd_cubic_bezier_curve,
+    S = cmd_smooth_cubic_bezier_curve_abs,
+    s = cmd_smooth_cubic_bezier_curve,
 }
 
 -- A path_step represents a single path step.
@@ -212,6 +250,9 @@ NodeLibrary:addNodes(
                     size = inputs.size,
                     points = {},
                     mesh = nil,
+                    last_cmd = nil,
+                    last_p2 = nil,
+                    last_p3 = nil,
                 }
 
                 if inputs.segments < 1 then
@@ -223,6 +264,7 @@ NodeLibrary:addNodes(
                 local path_steps = parse_path(inputs.path)
                 for _, path_step in path_steps do
                     process_path_step(state, path_step)
+                    state.last_cmd = path_step.C  -- used for smooth curves
                 end
 
                 cmd_close_path(state)
