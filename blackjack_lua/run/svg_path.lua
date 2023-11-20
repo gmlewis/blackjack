@@ -263,6 +263,99 @@ local cmd_smooth_quadratic_bezier_curve = function(state, params)
     return state
 end
 
+-- based on: https://ericeastwood.com/blog/curves-and-arcs-quadratic-cubic-elliptical-svg-implementations/
+local elliptic_arc_to = function(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
+    if radius == vector(0,0,0) then  -- zero radius degrades to straight line
+        state.current_pos = p1
+        table.insert(state.points, state.current_pos)
+        return
+    end
+
+    local tp = V.rotate_around_axis((p0 - p1) / 2, state.forward, angle)
+    local tpx = V.dot(tp, state.right)
+    local tpy = V.dot(tp, state.normal)
+    local radii_check = math.pow(tpx,2)/math.pow(rx,2) + math.pow(tpy,2)/math.pow(ry,2)
+    if radii_check > 1 then
+        rx = math.sqrt(radii_check)*rx
+        ry = math.sqrt(radii_check)*ry
+    end
+
+    local sn = math.pow(rx,2)*math.pow(ry,2) - math.pow(rx,2)*math.pow(tpy,2) - math.pow(ry,2)*math.pow(tpx,2)
+    local srd = math.pow(rx,2)*math.pow(tpy,2) + math.pow(ry,2)*math.pow(tpx,2)
+    local radicand = sn/srd
+    if radicand < 0 then
+        radicand = 0
+    end
+    local coef = large_arc_flag == sweep_flag and -math.sqrt(radicand) or math.sqrt(radicand)
+    local tcx = coef*((rx*tpy)/ry)
+    local tcy = -coef*(-(ry*tpx)/rx)
+    local tc = tcx * state.right + tcy * state.normal
+
+    local center = V.rotate_around_axis(tc, state.forward, angle) + ((p0 + p1) / 2)
+
+    local start_vector = vector((tpx - tcx)/rx, (tpy - tcy)/ry, 0)
+    local cos_theta = V.dot(state.right, start_vector) / V.length(start_vector)
+    local start_angle = math.acos(cos_theta)
+
+    local end_vector = vector((-tpx - tcx)/rx, (-tpy - tcy)/ry, 0)
+    local cos_theta = V.dot(start_vector, end_vector) / (V.length(start_vector) * V.length(end_vector))
+    local sweep_angle = math.acos(cos_theta)
+
+    if sweep_flag == 0 and sweep_angle > 0 then
+        sweep_angle = sweep_angle - 2*math.pi
+    elseif swap_flag ~= 0 and sweep_angle < 0 then
+        sweep_angle = sweep_angle + 2*math.pi
+    end
+    sweep_angle = sweep_angle % (2*math.pi)
+
+    for i = 1, state.segments do
+        local t = i / state.segments
+
+        local a = start_angle + (sweep_angle * t)
+        local ecx = rx * math.cos(a)
+        local ecy = ry * math.sin(a)
+
+        local ec = ecx * state.right + ecy * state.normal
+        state.current_pos = V.rotate_around_axis(ec, state.forward, angle) + center
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_elliptic_arc_curve_abs = function(state, params)
+    for i = 1, #params, 7 do
+        local rx = math.abs(params[i])
+        local ry = math.abs(params[i+1])
+        local angle = (params[i+2] % 360) * 180 / math.pi
+        local large_arc_flag = params[i+3]
+        local sweep_flag = params[i+4]
+        local p0 = state.current_pos
+        local p1 = state.pos + params[i+5] * state.right + params[i+6] * state.normal
+        if p0 == p1 then
+            continue
+        end
+        state = elliptic_arc_to(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
+    end
+    return state
+end
+
+local cmd_elliptic_arc_curve = function(state, params)
+    for i = 1, #params, 7 do
+        local rx = math.abs(params[i])
+        local ry = math.abs(params[i+1])
+        local angle = (params[i+2] % 360) * 180 / math.pi
+        local large_arc_flag = params[i+3]
+        local sweep_flag = params[i+4]
+        local p0 = state.current_pos
+        local p1 = state.current_pos + params[i+5] * state.right + params[i+6] * state.normal
+        if p0 == p1 then
+            continue
+        end
+        state = elliptic_arc_to(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
+    end
+    return state
+end
+
 local all_commands = {
     Z = cmd_close_path,
     z = cmd_close_path,
@@ -282,6 +375,8 @@ local all_commands = {
     q = cmd_quadratic_bezier_curve,
     T = cmd_smooth_quadratic_bezier_curve_abs,
     t = cmd_smooth_quadratic_bezier_curve,
+    A = cmd_elliptic_arc_curve_abs,
+    a = cmd_elliptic_arc_curve,
 }
 
 -- A path_step represents a single path step.
@@ -314,11 +409,13 @@ NodeLibrary:addNodes(
             op = function(inputs)
                 local normal = V.normalize(inputs.normal)
                 local right = V.normalize(inputs.right)
+                local forward = V.cross(normal, right)
                 local state = {
                     normal = normal,
+                    right = right,
+                    forward = forward,
                     pos = inputs.pos,
                     current_pos = inputs.pos,
-                    right = right,
                     segments = inputs.segments,
                     size = inputs.size,
                     points = {},
