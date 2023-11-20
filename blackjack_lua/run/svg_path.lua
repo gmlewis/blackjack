@@ -5,7 +5,7 @@ local V = require("vector_math")
 local parse_parameters = function(d)
     local params = {}
     while string.len(d) > 0 do
-        local _, j, m = string.find(d, "^%s*([%d%.%-]+)%s*")
+        local _, j, m = string.find(d, "^%s*([%d%.%-]+)%s*,*")
         if m ~= nil then
             table.insert(params, 0+m)  -- coerce m to a number.
             d = string.sub(d, j+1)
@@ -61,6 +61,7 @@ end
 
 local cmd_move_to_abs = function(state, params)
     cmd_close_path(state)
+    -- print("pos=",state.pos,", params[1]=",params[1],", right=", state.right,", params[2]=",params[2],", normal=",state.normal)
     state.current_pos = state.pos + params[1] * state.right + params[2] * state.normal
     table.insert(state.points, state.current_pos)
     return state
@@ -274,11 +275,13 @@ local elliptic_arc_to = function(state, rx, ry, angle, large_arc_flag, sweep_fla
     local tp = V.rotate_around_axis((p0 - p1) / 2, state.forward, angle)
     local tpx = V.dot(tp, state.right)
     local tpy = V.dot(tp, state.normal)
+    -- print("tp=",tp,", tpx=",tpx,", tpy=",tpy)
     local radii_check = math.pow(tpx,2)/math.pow(rx,2) + math.pow(tpy,2)/math.pow(ry,2)
     if radii_check > 1 then
         rx = math.sqrt(radii_check)*rx
         ry = math.sqrt(radii_check)*ry
     end
+    -- print("rx=",rx,", ry=",ry)
 
     local sn = math.pow(rx,2)*math.pow(ry,2) - math.pow(rx,2)*math.pow(tpy,2) - math.pow(ry,2)*math.pow(tpx,2)
     local srd = math.pow(rx,2)*math.pow(tpy,2) + math.pow(ry,2)*math.pow(tpx,2)
@@ -286,6 +289,7 @@ local elliptic_arc_to = function(state, rx, ry, angle, large_arc_flag, sweep_fla
     if radicand < 0 then
         radicand = 0
     end
+    -- print("sn=",sn,", srd=",srd,", radicand=",radicand)
     local coef = large_arc_flag == sweep_flag and -math.sqrt(radicand) or math.sqrt(radicand)
     local tcx = coef*((rx*tpy)/ry)
     local tcy = -coef*(-(ry*tpx)/rx)
