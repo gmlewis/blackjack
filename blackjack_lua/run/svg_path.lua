@@ -194,6 +194,75 @@ local cmd_smooth_cubic_bezier_curve = function(state, params)
     return state
 end
 
+local quadratic_to = function(state, p0, p1, p2)
+    for i = 1, state.segments do
+        local t = i / state.segments
+        local t1 = 1.0 - t
+        local f = t1 * t1
+        state.current_pos = p0 * f
+        f = 2.0 * t1 * t
+        state.current_pos = state.current_pos + p1 * f
+        f = t * t
+        state.current_pos = state.current_pos + p2 * f
+        table.insert(state.points, state.current_pos)
+    end
+    return state
+end
+
+local cmd_quadratic_bezier_curve_abs = function(state, params)
+    for i = 1, #params, 4 do
+        local p0 = state.current_pos
+        local p1 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
+        local p2 = state.pos + params[i+2] * state.right + params[i+3] * state.normal
+        state = quadratic_to(state, p0, p1, p2)
+        state.last_p1 = p1
+        state.last_p2 = p2
+    end
+    return state
+end
+
+local cmd_quadratic_bezier_curve = function(state, params)
+    for i = 1, #params, 4 do
+        local p0 = state.current_pos
+        local p1 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
+        local p2 = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
+        state = quadratic_to(state, p0, p1, p2)
+        state.last_p1 = p1
+        state.last_p2 = p2
+    end
+    return state
+end
+
+local cmd_smooth_quadratic_bezier_curve_abs = function(state, params)
+    for i = 1, #params, 2 do
+        local p0 = state.current_pos
+        local p1 = state.pos
+        if state.last_cmd == "Q" or state.last_cmd == "q" or state.last_cmd == "T" or state.last_cmd == "t" then
+            p1 = state.pos + state.last_p2 - state.last_p1
+        end
+        local p2 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
+        state = quadratic_to(state, p0, p1, p2)
+        state.last_p1 = p1
+        state.last_p2 = p2
+    end
+    return state
+end
+
+local cmd_smooth_quadratic_bezier_curve = function(state, params)
+    for i = 1, #params, 2 do
+        local p0 = state.current_pos
+        local p1 = state.current_pos
+        if state.last_cmd == "Q" or state.last_cmd == "q" or state.last_cmd == "T" or state.last_cmd == "t" then
+            p1 = state.current_pos + state.last_p2 - state.last_p1
+        end
+        local p2 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
+        state = quadratic_to(state, p0, p1, p2)
+        state.last_p1 = p1
+        state.last_p2 = p2
+    end
+    return state
+end
+
 local all_commands = {
     Z = cmd_close_path,
     z = cmd_close_path,
@@ -209,6 +278,10 @@ local all_commands = {
     c = cmd_cubic_bezier_curve,
     S = cmd_smooth_cubic_bezier_curve_abs,
     s = cmd_smooth_cubic_bezier_curve,
+    Q = cmd_quadratic_bezier_curve_abs,
+    q = cmd_quadratic_bezier_curve,
+    T = cmd_smooth_quadratic_bezier_curve_abs,
+    t = cmd_smooth_quadratic_bezier_curve,
 }
 
 -- A path_step represents a single path step.
@@ -251,6 +324,7 @@ NodeLibrary:addNodes(
                     points = {},
                     mesh = nil,
                     last_cmd = nil,
+                    last_p1 = nil,
                     last_p2 = nil,
                     last_p3 = nil,
                 }
