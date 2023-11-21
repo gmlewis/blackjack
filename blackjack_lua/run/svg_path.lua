@@ -84,27 +84,27 @@ end
 
 local cmd_move_to_abs = function(state, params)
     terminate_path(state)
-    state.current_pos = state.pos + params[1] * state.right + params[2] * state.normal
+    state.current_pos = state.pos + (params[1] * state.right + params[2] * state.normal) * state.size
     table.insert(state.points, state.current_pos)
     return state
 end
 
 local cmd_move_to = function(state, params)
     terminate_path(state)
-    state.current_pos = state.current_pos + params[1] * state.right + params[2] * state.normal
+    state.current_pos = state.current_pos + (params[1] * state.right + params[2] * state.normal) * state.size
     table.insert(state.points, state.current_pos)
     return state
 end
 
 local cmd_line_to_abs = function(state, params)
-    state.current_pos = state.pos + params[1] * state.right + params[2] * state.normal
+    state.current_pos = state.pos + (params[1] * state.right + params[2] * state.normal) * state.size
     table.insert(state.points, state.current_pos)
     return state
 end
 
 local cmd_line_to = function(state, params)
     for i = 1, #params, 2 do
-        state.current_pos = state.current_pos + params[i] * state.right + params[i+1] * state.normal
+        state.current_pos = state.current_pos + (params[i] * state.right + params[i+1] * state.normal) * state.size
         table.insert(state.points, state.current_pos)
     end
     return state
@@ -112,7 +112,7 @@ end
 
 local cmd_line_horizontal_abs = function(state, params)
     for i = 1, #params do
-        state.current_pos = state.pos + params[i] * state.right
+        state.current_pos = state.pos + (params[i] * state.right) * state.size
         table.insert(state.points, state.current_pos)
     end
     return state
@@ -120,7 +120,7 @@ end
 
 local cmd_line_horizontal = function(state, params)
     for i = 1, #params do
-        state.current_pos = state.current_pos + params[i] * state.right
+        state.current_pos = state.current_pos + (params[i] * state.right) * state.size
         table.insert(state.points, state.current_pos)
     end
     return state
@@ -128,7 +128,7 @@ end
 
 local cmd_line_vertical_abs = function(state, params)
     for i = 1, #params do
-        state.current_pos = state.pos + params[i] * state.normal
+        state.current_pos = state.pos + (params[i] * state.normal) * state.size
         table.insert(state.points, state.current_pos)
     end
     return state
@@ -136,7 +136,7 @@ end
 
 local cmd_line_vertical = function(state, params)
     for i = 1, #params do
-        state.current_pos = state.current_pos + params[i] * state.normal
+        state.current_pos = state.current_pos + (params[i] * state.normal) * state.size
         table.insert(state.points, state.current_pos)
     end
     return state
@@ -162,9 +162,9 @@ end
 local cmd_cubic_bezier_curve_abs = function(state, params)
     for i = 1, #params, 6 do
         local p0 = state.current_pos
-        local p1 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
-        local p2 = state.pos + params[i+2] * state.right + params[i+3] * state.normal
-        local ep = state.pos + params[i+4] * state.right + params[i+5] * state.normal
+        local p1 = state.pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
+        local p2 = state.pos + (params[i+2] * state.right + params[i+3] * state.normal) * state.size
+        local ep = state.pos + (params[i+4] * state.right + params[i+5] * state.normal) * state.size
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -175,9 +175,9 @@ end
 local cmd_cubic_bezier_curve = function(state, params)
     for i = 1, #params, 6 do
         local p0 = state.current_pos
-        local p1 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
-        local p2 = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
-        local ep = state.current_pos + params[i+4] * state.right + params[i+5] * state.normal
+        local p1 = state.current_pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
+        local p2 = state.current_pos + (params[i+2] * state.right + params[i+3] * state.normal) * state.size
+        local ep = state.current_pos + (params[i+4] * state.right + params[i+5] * state.normal) * state.size
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -192,8 +192,8 @@ local cmd_smooth_cubic_bezier_curve_abs = function(state, params)
         if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
             p1 = state.pos + state.last_p3 - state.last_p2
         end
-        local p2 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
-        local ep = state.pos + params[i+2] * state.right + params[i+3] * state.normal
+        local p2 = state.pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
+        local ep = state.pos + (params[i+2] * state.right + params[i+3] * state.normal) * state.size
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -208,8 +208,8 @@ local cmd_smooth_cubic_bezier_curve = function(state, params)
         if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
             p1 = state.current_pos + state.last_p3 - state.last_p2
         end
-        local p2 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
-        local ep = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
+        local p2 = state.current_pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
+        local ep = state.current_pos + (params[i+2] * state.right + params[i+3] * state.normal) * state.size
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -235,8 +235,8 @@ end
 local cmd_quadratic_bezier_curve_abs = function(state, params)
     for i = 1, #params, 4 do
         local p0 = state.current_pos
-        local p1 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
-        local p2 = state.pos + params[i+2] * state.right + params[i+3] * state.normal
+        local p1 = state.pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
+        local p2 = state.pos + (params[i+2] * state.right + params[i+3] * state.normal) * state.size
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -247,8 +247,8 @@ end
 local cmd_quadratic_bezier_curve = function(state, params)
     for i = 1, #params, 4 do
         local p0 = state.current_pos
-        local p1 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
-        local p2 = state.current_pos + params[i+2] * state.right + params[i+3] * state.normal
+        local p1 = state.current_pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
+        local p2 = state.current_pos + (params[i+2] * state.right + params[i+3] * state.normal) * state.size
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -263,7 +263,7 @@ local cmd_smooth_quadratic_bezier_curve_abs = function(state, params)
         if state.last_cmd == "Q" or state.last_cmd == "q" or state.last_cmd == "T" or state.last_cmd == "t" then
             p1 = state.current_pos + state.last_p2 - state.last_p1
         end
-        local p2 = state.pos + params[i  ] * state.right + params[i+1] * state.normal
+        local p2 = state.pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -278,7 +278,7 @@ local cmd_smooth_quadratic_bezier_curve = function(state, params)
         if state.last_cmd == "Q" or state.last_cmd == "q" or state.last_cmd == "T" or state.last_cmd == "t" then
             p1 = state.current_pos + state.last_p2 - state.last_p1
         end
-        local p2 = state.current_pos + params[i  ] * state.right + params[i+1] * state.normal
+        local p2 = state.current_pos + (params[i  ] * state.right + params[i+1] * state.normal) * state.size
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -356,13 +356,13 @@ end
 
 local cmd_elliptic_arc_curve_abs = function(state, params)
     for i = 1, #params, 7 do
-        local rx = math.abs(params[i])
-        local ry = math.abs(params[i+1])
+        local rx = math.abs(params[i]) * state.size.x
+        local ry = math.abs(params[i+1]) * state.size.y
         local angle = signed_mod(params[i+2], 360) * math.pi / 180
         local large_arc_flag = params[i+3]
         local sweep_flag = params[i+4]
         local p0 = state.current_pos
-        local p1 = state.pos + params[i+5] * state.right + params[i+6] * state.normal
+        local p1 = state.pos + (params[i+5] * state.right + params[i+6] * state.normal) * state.size
         if p0 ~= p1 then
             state = elliptic_arc_to(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
         end
@@ -372,13 +372,13 @@ end
 
 local cmd_elliptic_arc_curve = function(state, params)
     for i = 1, #params, 7 do
-        local rx = math.abs(params[i])
-        local ry = math.abs(params[i+1])
+        local rx = math.abs(params[i]) * state.size.x
+        local ry = math.abs(params[i+1]) * state.size.y
         local angle = signed_mod(params[i+2], 360) * math.pi / 180
         local large_arc_flag = params[i+3]
         local sweep_flag = params[i+4]
         local p0 = state.current_pos
-        local p1 = state.current_pos + params[i+5] * state.right + params[i+6] * state.normal
+        local p1 = state.current_pos + (params[i+5] * state.right + params[i+6] * state.normal) * state.size
         if p0 ~= p1 then
             state = elliptic_arc_to(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
         end
