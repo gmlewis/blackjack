@@ -85,7 +85,7 @@ local terminate_path = function(state)
 end
 
 local insert_current_pos = function(state)
-    table.insert(state.points, (state.current_pos.x * state.right + state.current_pos.y * state.normal))
+    table.insert(state.points, (state.current_pos.x * state.right + state.current_pos.y * state.normal)+vector(0,0,state.pos.z))
 end
 
 local cmd_move_to_abs = function(state, params)
@@ -118,7 +118,7 @@ end
 
 local cmd_line_horizontal_abs = function(state, params)
     for i = 1, #params do
-        state.current_pos = state.pos + vector(params[i],0,0) * state.size
+        state.current_pos = state.current_pos*vector(0,1,0) + vector(params[i],0,0) * state.size
         insert_current_pos(state)
     end
     return state
@@ -134,7 +134,7 @@ end
 
 local cmd_line_vertical_abs = function(state, params)
     for i = 1, #params do
-        state.current_pos = state.pos + vector(0, params[i], 0) * state.size
+        state.current_pos = state.current_pos*vector(1,0,0) + vector(0, params[i], 0) * state.size
         insert_current_pos(state)
     end
     return state
@@ -196,7 +196,7 @@ local cmd_smooth_cubic_bezier_curve_abs = function(state, params)
         local p0 = state.current_pos
         local p1 = state.pos
         if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
-            p1 = state.pos + state.last_p3 - state.last_p2
+            p1 = state.current_pos + state.last_p3 - state.last_p2
         end
         local p2 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
         local ep = state.pos + vector(params[i+2], params[i+3], 0) * state.size
@@ -359,8 +359,8 @@ end
 
 local cmd_elliptic_arc_curve_abs = function(state, params)
     for i = 1, #params, 7 do
-        local rx = math.abs(params[i]) * state.size.x
-        local ry = math.abs(params[i+1]) * state.size.y
+        local rx = math.abs(params[i])
+        local ry = math.abs(params[i+1])
         local angle = signed_mod(params[i+2], 360) * math.pi / 180
         local large_arc_flag = params[i+3]
         local sweep_flag = params[i+4]
@@ -375,8 +375,8 @@ end
 
 local cmd_elliptic_arc_curve = function(state, params)
     for i = 1, #params, 7 do
-        local rx = math.abs(params[i]) * state.size.x
-        local ry = math.abs(params[i+1]) * state.size.y
+        local rx = math.abs(params[i])
+        local ry = math.abs(params[i+1])
         local angle = signed_mod(params[i+2], 360) * math.pi / 180
         local large_arc_flag = params[i+3]
         local sweep_flag = params[i+4]
