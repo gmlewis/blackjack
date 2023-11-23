@@ -27,8 +27,8 @@ local parse_parameters = function(d)
             d = string.sub(d, j+1)
         else
             -- Should not reach here.
-            print("programming error - parse_parameters")
-            return params
+            print("parse_parameters - bad path:", d)
+            return {}
         end
     end
     return params
@@ -55,7 +55,7 @@ local parse_path = function(d)
             else
                 -- Should not reach here, as this is an unsupported SVG command.
                 print("unsupported SVG path command:", d)
-                return path_steps
+                return {}
             end
         end
     end
@@ -89,26 +89,48 @@ local insert_current_pos = function(state)
 end
 
 local cmd_move_to_abs = function(state, params)
+    if #params < 2 or #params % 2 ~= 0 then
+        print("cmd 'M': requires even number of params")
+        return state
+    end
     terminate_path(state)
-    state.current_pos = state.pos + vector(params[1], params[2], 0) * state.size
-    insert_current_pos(state)
+    for i = 1, #params, 2 do
+        state.current_pos = state.pos + vector(params[i], params[i+1], 0) * state.size
+        insert_current_pos(state)
+    end
     return state
 end
 
 local cmd_move_to = function(state, params)
+    if #params < 2 or #params % 2 ~= 0 then
+        print("cmd 'm': requires even number of params")
+        return state
+    end
     terminate_path(state)
-    state.current_pos = state.current_pos + vector(params[1], params[2], 0) * state.size
-    insert_current_pos(state)
+    for i = 1, #params, 2 do
+        state.current_pos = state.current_pos + vector(params[i], params[i+1], 0) * state.size
+        insert_current_pos(state)
+    end
     return state
 end
 
 local cmd_line_to_abs = function(state, params)
-    state.current_pos = state.pos + vector(params[1], params[2], 0) * state.size
-    insert_current_pos(state)
+    if #params < 2 or #params % 2 ~= 0 then
+        print("cmd 'L': requires even number of params")
+        return state
+    end
+    for i = 1, #params, 2 do
+        state.current_pos = state.pos + vector(params[i], params[i+1], 0) * state.size
+        insert_current_pos(state)
+    end
     return state
 end
 
 local cmd_line_to = function(state, params)
+    if #params < 2 or #params % 2 ~= 0 then
+        print("cmd 'l': requires even number of params")
+        return state
+    end
     for i = 1, #params, 2 do
         state.current_pos = state.current_pos + vector(params[i], params[i+1], 0) * state.size
         insert_current_pos(state)
@@ -117,6 +139,10 @@ local cmd_line_to = function(state, params)
 end
 
 local cmd_line_horizontal_abs = function(state, params)
+    if #params < 1 then
+        print("cmd 'H': requires one or more params")
+        return state
+    end
     for i = 1, #params do
         state.current_pos = state.current_pos*vector(0,1,0) + vector(params[i],0,0) * state.size
         insert_current_pos(state)
@@ -125,6 +151,10 @@ local cmd_line_horizontal_abs = function(state, params)
 end
 
 local cmd_line_horizontal = function(state, params)
+    if #params < 1 then
+        print("cmd 'h': requires one or more params")
+        return state
+    end
     for i = 1, #params do
         state.current_pos = state.current_pos + vector(params[i],0,0) * state.size
         insert_current_pos(state)
@@ -133,6 +163,10 @@ local cmd_line_horizontal = function(state, params)
 end
 
 local cmd_line_vertical_abs = function(state, params)
+    if #params < 1 then
+        print("cmd 'V': requires one or more params")
+        return state
+    end
     for i = 1, #params do
         state.current_pos = state.current_pos*vector(1,0,0) + vector(0, params[i], 0) * state.size
         insert_current_pos(state)
@@ -141,6 +175,10 @@ local cmd_line_vertical_abs = function(state, params)
 end
 
 local cmd_line_vertical = function(state, params)
+    if #params < 1 then
+        print("cmd 'v': requires one or more params")
+        return state
+    end
     for i = 1, #params do
         state.current_pos = state.current_pos + vector(0, params[i], 0) * state.size
         insert_current_pos(state)
@@ -166,6 +204,10 @@ local cubic_to = function(state, p0, p1, p2, p3)
 end
 
 local cmd_cubic_bezier_curve_abs = function(state, params)
+    if #params < 6 or #params % 6 ~= 0 then
+        print("cmd 'C': requires multiple of 6 params")
+        return state
+    end
     for i = 1, #params, 6 do
         local p0 = state.current_pos
         local p1 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
@@ -179,6 +221,10 @@ local cmd_cubic_bezier_curve_abs = function(state, params)
 end
 
 local cmd_cubic_bezier_curve = function(state, params)
+    if #params < 6 or #params % 6 ~= 0 then
+        print("cmd 'c': requires multiple of 6 params")
+        return state
+    end
     for i = 1, #params, 6 do
         local p0 = state.current_pos
         local p1 = state.current_pos + vector(params[i  ], params[i+1], 0) * state.size
@@ -192,6 +238,10 @@ local cmd_cubic_bezier_curve = function(state, params)
 end
 
 local cmd_smooth_cubic_bezier_curve_abs = function(state, params)
+    if #params < 4 or #params % 4 ~= 0 then
+        print("cmd 'S': requires multiple of 4 params")
+        return state
+    end
     for i = 1, #params, 4 do
         local p0 = state.current_pos
         local p1 = state.pos
@@ -208,6 +258,10 @@ local cmd_smooth_cubic_bezier_curve_abs = function(state, params)
 end
 
 local cmd_smooth_cubic_bezier_curve = function(state, params)
+    if #params < 4 or #params % 4 ~= 0 then
+        print("cmd 's': requires multiple of 4 params")
+        return state
+    end
     for i = 1, #params, 4 do
         local p0 = state.current_pos
         local p1 = state.current_pos
@@ -239,6 +293,10 @@ local quadratic_to = function(state, p0, p1, p2)
 end
 
 local cmd_quadratic_bezier_curve_abs = function(state, params)
+    if #params < 4 or #params % 4 ~= 0 then
+        print("cmd 'Q': requires multiple of 4 params")
+        return state
+    end
     for i = 1, #params, 4 do
         local p0 = state.current_pos
         local p1 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
@@ -251,6 +309,10 @@ local cmd_quadratic_bezier_curve_abs = function(state, params)
 end
 
 local cmd_quadratic_bezier_curve = function(state, params)
+    if #params < 4 or #params % 4 ~= 0 then
+        print("cmd 'q': requires multiple of 4 params")
+        return state
+    end
     for i = 1, #params, 4 do
         local p0 = state.current_pos
         local p1 = state.current_pos + vector(params[i  ], params[i+1], 0) * state.size
@@ -263,6 +325,10 @@ local cmd_quadratic_bezier_curve = function(state, params)
 end
 
 local cmd_smooth_quadratic_bezier_curve_abs = function(state, params)
+    if #params < 2 or #params % 2 ~= 0 then
+        print("cmd 'T': requires multiple of 2 params")
+        return state
+    end
     for i = 1, #params, 2 do
         local p0 = state.current_pos
         local p1 = state.current_pos
@@ -278,6 +344,10 @@ local cmd_smooth_quadratic_bezier_curve_abs = function(state, params)
 end
 
 local cmd_smooth_quadratic_bezier_curve = function(state, params)
+    if #params < 2 or #params % 2 ~= 0 then
+        print("cmd 't': requires multiple of 2 params")
+        return state
+    end
     for i = 1, #params, 2 do
         local p0 = state.current_pos
         local p1 = state.current_pos
@@ -358,6 +428,10 @@ local elliptic_arc_to = function(state, rx, ry, angle, large_arc_flag, sweep_fla
 end
 
 local cmd_elliptic_arc_curve_abs = function(state, params)
+    if #params < 7 or #params % 7 ~= 0 then
+        print("cmd 'A': requires multiple of 7 params")
+        return state
+    end
     for i = 1, #params, 7 do
         local rx = math.abs(params[i])
         local ry = math.abs(params[i+1])
@@ -374,6 +448,10 @@ local cmd_elliptic_arc_curve_abs = function(state, params)
 end
 
 local cmd_elliptic_arc_curve = function(state, params)
+    if #params < 7 or #params % 7 ~= 0 then
+        print("cmd 'a': requires multiple of 7 params")
+        return state
+    end
     for i = 1, #params, 7 do
         local rx = math.abs(params[i])
         local ry = math.abs(params[i+1])
@@ -457,9 +535,9 @@ NodeLibrary:addNodes(
                     last_p3 = nil,
                 }
 
-                if inputs.segments < 1 then
+                if inputs.segments < 1 or inputs.d == "" then
                     return {
-                        out_mesh = state.mesh
+                        out_mesh = Primitives.line_from_points({})
                     }
                 end
 
@@ -470,6 +548,12 @@ NodeLibrary:addNodes(
                 end
 
                 terminate_path(state)
+
+                if state.mesh == nil then
+                    return {
+                        out_mesh = Primitives.line_from_points({})
+                    }
+                end
 
                 return {
                     out_mesh = state.mesh
