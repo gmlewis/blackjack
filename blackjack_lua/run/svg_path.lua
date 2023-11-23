@@ -114,14 +114,25 @@ local cmd_move_to = function(state, params)
     return state
 end
 
+local line_to = function(state, p0, p1)
+    for i = 1, state.segments do
+        local t = i / state.segments
+        local t1 = 1.0 - t
+        state.current_pos = p0 * t1 + p1 * t
+        insert_current_pos(state)
+    end
+    return state
+end
+
 local cmd_line_to_abs = function(state, params)
     if #params < 2 or #params % 2 ~= 0 then
         print("cmd 'L': requires even number of params")
         return state
     end
     for i = 1, #params, 2 do
-        state.current_pos = state.pos + vector(params[i], params[i+1], 0) * state.size
-        insert_current_pos(state)
+        local p0 = state.current_pos
+        local p1 = state.pos + vector(params[i], params[i+1], 0) * state.size
+        state = line_to(state, p0, p1)
     end
     return state
 end
@@ -132,8 +143,9 @@ local cmd_line_to = function(state, params)
         return state
     end
     for i = 1, #params, 2 do
-        state.current_pos = state.current_pos + vector(params[i], params[i+1], 0) * state.size
-        insert_current_pos(state)
+        local p0 = state.current_pos
+        local p1 = state.current_pos + vector(params[i], params[i+1], 0) * state.size
+        state = line_to(state, p0, p1)
     end
     return state
 end
@@ -144,8 +156,9 @@ local cmd_line_horizontal_abs = function(state, params)
         return state
     end
     for i = 1, #params do
-        state.current_pos = state.current_pos*vector(0,1,0) + vector(params[i],0,0) * state.size
-        insert_current_pos(state)
+        local p0 = state.current_pos
+        local p1 = state.current_pos*vector(0,1,0) + vector(params[i],0,0) * state.size
+        state = line_to(state, p0, p1)
     end
     return state
 end
@@ -156,8 +169,9 @@ local cmd_line_horizontal = function(state, params)
         return state
     end
     for i = 1, #params do
-        state.current_pos = state.current_pos + vector(params[i],0,0) * state.size
-        insert_current_pos(state)
+        local p0 = state.current_pos
+        local p1 = state.current_pos + vector(params[i],0,0) * state.size
+        state = line_to(state, p0, p1)
     end
     return state
 end
@@ -168,8 +182,9 @@ local cmd_line_vertical_abs = function(state, params)
         return state
     end
     for i = 1, #params do
-        state.current_pos = state.current_pos*vector(1,0,0) + vector(0, params[i], 0) * state.size
-        insert_current_pos(state)
+        local p0 = state.current_pos
+        local p1 = state.current_pos*vector(1,0,0) + vector(0, params[i], 0) * state.size
+        state = line_to(state, p0, p1)
     end
     return state
 end
@@ -180,8 +195,9 @@ local cmd_line_vertical = function(state, params)
         return state
     end
     for i = 1, #params do
-        state.current_pos = state.current_pos + vector(0, params[i], 0) * state.size
-        insert_current_pos(state)
+        local p0 = state.current_pos
+        local p1 = state.current_pos + vector(0, params[i], 0) * state.size
+        state = line_to(state, p0, p1)
     end
     return state
 end
