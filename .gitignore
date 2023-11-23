@@ -7,4 +7,5 @@ target/
 # handy symlinks
 blackjack
 go-bjk
+run
 *.sh

@@ -22,7 +22,7 @@ NodeLibrary:addNodes(
 
                 local rail_angle_delta = math.pi / inputs.num_pairs
                 local inner_radius = inputs.size.x + inputs.wire_width/2 + inputs.wire_gap
-                local outer_radius = inner_radius + inputs.thickness
+                local outer_radius = inner_radius + inputs.radial_thickness
 
                 local inner_dtheta = math.asin(inputs.wire_gap / (2 * inner_radius))
                 local outer_dtheta = math.asin(inputs.wire_gap / (2 * outer_radius))
@@ -46,7 +46,9 @@ NodeLibrary:addNodes(
                     table.insert(points, point)
                 end
 
+                -- first, generate the long axial connectors
                 local axial_connector_top_ys = {}
+                local max_axial_connector_top_ys = extrude_height + lower_y + (inputs.num_pairs-1) * delta_y
                 local out_mesh = {}
                 for i = 0, 2*inputs.num_pairs-1 do
                     local inner_start_angle = i * rail_angle_delta
@@ -85,7 +87,7 @@ NodeLibrary:addNodes(
                         Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length, new_mesh)
                         out_mesh = new_mesh
                     else
-                        Ops.extrude_with_caps(all_faces_selection, extrude_height, new_mesh)
+                        Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-y, new_mesh)
                         Ops.merge(out_mesh, new_mesh)
                     end
                 end
@@ -96,11 +98,11 @@ NodeLibrary:addNodes(
                 local ys = {}
                 for i = 1, inputs.num_pairs do
                     ys[i] = lower_y + (i-1) * delta_y
-                    -- Create the connectors to the ends of the coils, based on the shift_mixer setting
-                    -- which determines how far each coil pair has rotated:
-                    rotations[i] = -inputs.shift_mixer * math.pi * (i-1) / inputs.num_pairs
+                    -- Create the connectors to the ends of the coils:
+                    rotations[i] = -math.pi * (i-1) / inputs.num_pairs
                     line_lengths[i] = (inputs.num_pairs - i + 1) * (inputs.wire_width + inputs.wire_gap)
                 end
+                local max_ys = lower_y + (inputs.num_pairs-1) * delta_y
 
                 local function gen_points(y, inner_start_angle, inner_angle_delta)
                     local points = {}
@@ -111,6 +113,7 @@ NodeLibrary:addNodes(
                     return points
                 end
 
+                -- now generate both front/bottom and back/top connectors to the helices
                 for i = 1, inputs.num_pairs do
                     local y = ys[i] + inputs.wire_width
                     local rotation = rotations[i]
@@ -148,12 +151,9 @@ NodeLibrary:addNodes(
                         -- half wire-width at outer radius in radians
                         local top_hww = 0.5 * math.asin(inputs.wire_width / (2 * outer_radius))
                         top_angle = rotation - rail_angle_delta/2 + top_hww
-                        -- if i >= inputs.num_pairs then  -- final output connector of odd coils that connects to coil 2
-                        --     -- wire-width at outer radius in radians
-                        --     top_angle = rotation - 2 * top_hww
-                        -- end
                     end
                     local top_helix_y = coil_height - inputs.wire_width + ys[i]
+                    -- local top_helix_y = coil_height - (max_axial_connector_top_ys-axial_connector_top_ys[i]) + ys[i]
                     local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle)
                     local sz4 = inputs.pos.z + connector_radius * math.sin(top_angle)
                     local sx1 = sx4 + inputs.wire_width * math.cos(top_angle - math.pi/2)
@@ -172,7 +172,8 @@ NodeLibrary:addNodes(
                         vector(sx3, top_helix_y, sz3),
                     }
                     local face = Primitives.polygon(points)
-                    local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
+                    -- local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
+                    local over_height = max_axial_connector_top_ys - top_helix_y  -- flat top/back (connector side)
                     Ops.extrude_with_caps(all_faces_selection, over_height, face)
                     Ops.merge(out_mesh, face)
                     -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the odd coils:
@@ -181,7 +182,11 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
                     table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                     local face = Primitives.polygon(points)
-                    Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                    local thickness = over_height-inputs.wire_width-inputs.wire_gap
+                    if i == inputs.num_pairs then
+                        thickness = over_height
+                    end
+                    Ops.extrude_with_caps(all_faces_selection, thickness, face)
                     Ops.merge(out_mesh, face)
 
                     -- for all but the coil 1, the helix needs to be connected to the shifted back/top "up-and-over" connector
@@ -251,12 +256,12 @@ NodeLibrary:addNodes(
                     if i >= inputs.num_pairs then  -- final output connector of last coil (closer to center)
                         Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
                         Ops.merge(out_mesh, face)
-                        -- generate inner final output connector of last coil with same thickness as other connector
+                        -- generate inner final output connector of last coil with same radial thickness as other connector
                         local angle_diff = rail_angle_delta - 2*outer_dtheta
-                        local sx2 = inputs.pos.x + (connector_radius - inputs.thickness) * math.cos(top_angle + math.pi)
-                        local sz2 = inputs.pos.z + (connector_radius - inputs.thickness) * math.sin(top_angle + math.pi)
-                        local sx3 = inputs.pos.x + (connector_radius - inputs.thickness) * math.cos(top_angle + math.pi - angle_diff)
-                        local sz3 = inputs.pos.z + (connector_radius - inputs.thickness) * math.sin(top_angle + math.pi - angle_diff)
+                        local sx2 = inputs.pos.x + (connector_radius - inputs.radial_thickness) * math.cos(top_angle + math.pi)
+                        local sz2 = inputs.pos.z + (connector_radius - inputs.radial_thickness) * math.sin(top_angle + math.pi)
+                        local sx3 = inputs.pos.x + (connector_radius - inputs.radial_thickness) * math.cos(top_angle + math.pi - angle_diff)
+                        local sz3 = inputs.pos.z + (connector_radius - inputs.radial_thickness) * math.sin(top_angle + math.pi - angle_diff)
                         local points = {
                             vector(sx4, top_helix_y, sz4),
                             vector(sx1, top_helix_y, sz1),
@@ -280,7 +285,8 @@ NodeLibrary:addNodes(
                             vector(sx3, top_helix_y, sz3),
                         }
                         local face = Primitives.polygon(points)
-                        local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
+                        -- local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
+                        local over_height = max_axial_connector_top_ys - top_helix_y  -- flat top/back (connector side)
                         Ops.extrude_with_caps(all_faces_selection, over_height, face)
                         Ops.merge(out_mesh, face)
                         -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the even coils:
@@ -289,7 +295,7 @@ NodeLibrary:addNodes(
                         table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
                         table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                         local face = Primitives.polygon(points)
-                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        Ops.extrude_with_caps(all_faces_selection, thickness, face)
                         Ops.merge(out_mesh, face)
                     end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
@@ -318,8 +324,9 @@ NodeLibrary:addNodes(
                 P.v3("pos", vector(0, 0, 0)),  -- pos is lowered by wire_width/2
                 P.v3("size", vector(10, 0, 10)),  -- wire_width/2 + wire_gap is added to size.
                 P.scalar("connector_length", {default=10, min=0, soft_max = 33}),
-                P.scalar("shift_mixer", {default = 1, min = -1, soft_max = 1}),
-                P.scalar("thickness", {default = 1, min = 0, soft_max = 10}),
+                P.scalar("front_thickness", {default = 1, min = 0, soft_max = 10}),
+                P.scalar("back_thickness", {default = 1, min = 0, soft_max = 10}),
+                P.scalar("radial_thickness", {default = 2, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_gap", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_width", {default = 1, min = 0, soft_max = 10}),
