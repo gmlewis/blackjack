@@ -16,7 +16,7 @@ NodeLibrary:addNodes(
                 local lower_y = inputs.pos.y - inputs.wire_width/2
                 -- extrude_height is flush with the bottom (front) and rises (width+gap) above for wiring purposes on the top (back):
                 local coil_height = 2 * inputs.turns * (inputs.wire_width + inputs.wire_gap) + inputs.wire_width
-                local extrude_height = coil_height + inputs.wire_gap + inputs.wire_width
+                local extrude_height = coil_height + inputs.wire_gap + inputs.wire_width + inputs.back_thickness
 
                 local backbone = Primitives.line(vector(0,0,0), vector(0,1,0), 1)
 
@@ -182,11 +182,11 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
                     table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                     local face = Primitives.polygon(points)
-                    local thickness = over_height-inputs.wire_width-inputs.wire_gap
+                    local top_thickness = over_height-inputs.wire_width-inputs.wire_gap + inputs.back_thickness
                     if i == inputs.num_pairs then
-                        thickness = over_height
+                        top_thickness = over_height + inputs.back_thickness
                     end
-                    Ops.extrude_with_caps(all_faces_selection, thickness, face)
+                    Ops.extrude_with_caps(all_faces_selection, top_thickness, face)
                     Ops.merge(out_mesh, face)
 
                     -- for all but the coil 1, the helix needs to be connected to the shifted back/top "up-and-over" connector
@@ -269,7 +269,7 @@ NodeLibrary:addNodes(
                             vector(sx2, top_helix_y, sz2),
                         }
                         local face = Primitives.polygon(points)
-                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length, face)
+                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length + inputs.back_thickness, face)
                         Ops.merge(out_mesh, face)
                     else
                         local extrude_amount = 2 * inputs.wire_width + inputs.wire_gap
@@ -295,7 +295,7 @@ NodeLibrary:addNodes(
                         table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
                         table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                         local face = Primitives.polygon(points)
-                        Ops.extrude_with_caps(all_faces_selection, thickness, face)
+                        Ops.extrude_with_caps(all_faces_selection, top_thickness, face)
                         Ops.merge(out_mesh, face)
                     end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
