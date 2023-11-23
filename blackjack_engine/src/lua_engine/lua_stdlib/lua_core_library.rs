@@ -38,6 +38,7 @@ pub fn load(lua: &Lua, lua_io: Arc<dyn LuaFileIo + 'static>) -> anyhow::Result<(
                     // Here we list all the predefined libraries. These are
                     // baked into the blackjack binary via `include_str!`
                     def_lib!("params", "../node_params.lua");
+                    def_lib!("font_library", "../font_library.lua");
                     def_lib!("node_library", "../node_library.lua");
                     def_lib!("utils", "../blackjack_utils.lua");
 

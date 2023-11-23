@@ -42,7 +42,7 @@ local parse_path = function(d)
             d = string.sub(d, j+1) -- strip leading whitespace
         end
 
-        local _, j, m = string.find(d, "^(z)%s*")
+        local _, j, m = string.find(d, "^([zZ])%s*")
         if m ~= nil then
             table.insert(path_steps, {C="z"})
             d = string.sub(d, j+1)
