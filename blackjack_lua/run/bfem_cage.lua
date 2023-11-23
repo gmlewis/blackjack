@@ -15,7 +15,7 @@ NodeLibrary:addNodes(
 
                 local lower_y = inputs.pos.y - inputs.wire_width/2
                 local coil_height = 2 * inputs.turns * (inputs.wire_width + inputs.wire_gap) + inputs.wire_width
-                local extrude_height = coil_height + inputs.wire_gap + inputs.wire_width + inputs.back_thickness
+                local extrude_height = coil_height + inputs.wire_gap + inputs.wire_width
 
                 local backbone = Primitives.line(vector(0,0,0), vector(0,1,0), 1)
 
@@ -85,11 +85,11 @@ NodeLibrary:addNodes(
 
                     if i == 0 then
                         -- final output connector of coil 1 (at outer edge)
-                        Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length + inputs.front_thickness, new_mesh)
+                        Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length + inputs.front_thickness + inputs.back_thickness, new_mesh)
                         out_mesh = new_mesh
                     else
                         -- Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-y, new_mesh)
-                        Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-lower_y + inputs.front_thickness, new_mesh)
+                        Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-lower_y + inputs.front_thickness + inputs.back_thickness, new_mesh)
                         Ops.merge(out_mesh, new_mesh)
                     end
                 end
@@ -175,7 +175,7 @@ NodeLibrary:addNodes(
                     }
                     local face = Primitives.polygon(points)
                     -- local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
-                    local over_height = max_axial_connector_top_ys - top_helix_y  -- flat top/back (connector side)
+                    local over_height = max_axial_connector_top_ys - top_helix_y + inputs.back_thickness  -- flat top/back (connector side)
                     Ops.extrude_with_caps(all_faces_selection, over_height, face)
                     Ops.merge(out_mesh, face)
                     -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the odd coils:
@@ -184,9 +184,9 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(sx2, top_helix_y + over_height, sz2))
                     table.insert(points, vector(sx3, top_helix_y + over_height, sz3))
                     local face = Primitives.polygon(points)
-                    local top_thickness = over_height-inputs.wire_width-inputs.wire_gap + inputs.back_thickness
+                    local top_thickness = over_height-inputs.wire_width-inputs.wire_gap
                     if i == inputs.num_pairs then
-                        top_thickness = over_height + inputs.back_thickness
+                        top_thickness = over_height
                     end
                     Ops.extrude_with_caps(all_faces_selection, top_thickness, face)
                     Ops.merge(out_mesh, face)
@@ -275,7 +275,7 @@ NodeLibrary:addNodes(
                         Ops.merge(out_mesh, face)
                     else
                         local extrude_amount = 2 * inputs.wire_width + inputs.wire_gap
-                        Ops.extrude_with_caps(all_faces_selection, extrude_amount, face)
+                        Ops.extrude_with_caps(all_faces_selection, extrude_amount + inputs.back_thickness, face)
                         Ops.merge(out_mesh, face)
                     end
                     if i < inputs.num_pairs then
@@ -288,7 +288,7 @@ NodeLibrary:addNodes(
                         }
                         local face = Primitives.polygon(points)
                         -- local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
-                        local over_height = max_axial_connector_top_ys - top_helix_y  -- flat top/back (connector side)
+                        local over_height = max_axial_connector_top_ys - top_helix_y + inputs.back_thickness  -- flat top/back (connector side)
                         Ops.extrude_with_caps(all_faces_selection, over_height, face)
                         Ops.merge(out_mesh, face)
                         -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the even coils:
