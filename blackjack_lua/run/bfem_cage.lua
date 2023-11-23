@@ -14,7 +14,6 @@ NodeLibrary:addNodes(
                 end
 
                 local lower_y = inputs.pos.y - inputs.wire_width/2
-                -- extrude_height is flush with the bottom (front) and rises (width+gap) above for wiring purposes on the top (back):
                 local coil_height = 2 * inputs.turns * (inputs.wire_width + inputs.wire_gap) + inputs.wire_width
                 local extrude_height = coil_height + inputs.wire_gap + inputs.wire_width + inputs.back_thickness
 
@@ -71,11 +70,13 @@ NodeLibrary:addNodes(
                         local points = {}
                         -- inner points:
                         for j = 0, segments_per_rail do
-                            new_point(j, inner_start_angle, inner_angle_delta, inner_radius, y, points)
+                            -- new_point(j, inner_start_angle, inner_angle_delta, inner_radius, y, points)
+                            new_point(j, inner_start_angle, inner_angle_delta, inner_radius, lower_y - inputs.front_thickness, points)
                         end
                         -- outer points:
                         for j = segments_per_rail, 0, -1 do
-                            new_point(j, outer_start_angle, outer_angle_delta, outer_radius, y, points)
+                            -- new_point(j, outer_start_angle, outer_angle_delta, outer_radius, y, points)
+                            new_point(j, outer_start_angle, outer_angle_delta, outer_radius, lower_y - inputs.front_thickness, points)
                         end
                         return points
                     end
@@ -84,10 +85,11 @@ NodeLibrary:addNodes(
 
                     if i == 0 then
                         -- final output connector of coil 1 (at outer edge)
-                        Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length, new_mesh)
+                        Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length + inputs.front_thickness, new_mesh)
                         out_mesh = new_mesh
                     else
-                        Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-y, new_mesh)
+                        -- Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-y, new_mesh)
+                        Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-lower_y + inputs.front_thickness, new_mesh)
                         Ops.merge(out_mesh, new_mesh)
                     end
                 end
@@ -102,7 +104,6 @@ NodeLibrary:addNodes(
                     rotations[i] = -math.pi * (i-1) / inputs.num_pairs
                     line_lengths[i] = (inputs.num_pairs - i + 1) * (inputs.wire_width + inputs.wire_gap)
                 end
-                local max_ys = lower_y + (inputs.num_pairs-1) * delta_y
 
                 local function gen_points(y, inner_start_angle, inner_angle_delta)
                     local points = {}
@@ -138,8 +139,9 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(sx, y, sz))
 
                     -- this connects the bottom/front helix to the axial connector
+                    local bottom_thickness = ys[i] - lower_y + inputs.wire_width + inputs.front_thickness
                     local face = Primitives.polygon(points)
-                    Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                    Ops.extrude_with_caps(all_faces_selection, bottom_thickness, face)
                     Ops.merge(out_mesh, face)
 
                     -- add a vertical post to the back/top of the design for connecting the coils
@@ -218,7 +220,7 @@ NodeLibrary:addNodes(
                     table.insert(points, vector(sx, y, sz))
 
                     local face = Primitives.polygon(points)
-                    Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                    Ops.extrude_with_caps(all_faces_selection, bottom_thickness, face)
                     Ops.merge(out_mesh, face)
 
                     -- add a vertical post to the back/top of the design for connecting the coils
