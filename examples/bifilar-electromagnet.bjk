@@ -4890,435 +4890,6 @@
             ],
         ),
         (
-            op_name: "MakeComment",
-            return_value: None,
-            inputs: [
-                (
-                    name: "comment",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-            ],
-        ),
-        (
-            op_name: "VectorMath",
-            return_value: None,
-            inputs: [
-                (
-                    name: "op",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "vec_a",
-                    data_type: "BJK_VECTOR",
-                    kind: Conection(
-                        node_idx: 132,
-                        param_name: "out",
-                    ),
-                ),
-                (
-                    name: "vec_b",
-                    data_type: "BJK_VECTOR",
-                    kind: Conection(
-                        node_idx: 15,
-                        param_name: "out",
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out",
-                    data_type: "BJK_VECTOR",
-                ),
-            ],
-        ),
-        (
-            op_name: "ScalarMath",
-            return_value: None,
-            inputs: [
-                (
-                    name: "op",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "x",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "y",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out",
-                    data_type: "BJK_SCALAR",
-                ),
-            ],
-        ),
-        (
-            op_name: "ScalarMath",
-            return_value: None,
-            inputs: [
-                (
-                    name: "op",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "x",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 4,
-                        param_name: "x",
-                    ),
-                ),
-                (
-                    name: "y",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 11,
-                        param_name: "x",
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out",
-                    data_type: "BJK_SCALAR",
-                ),
-            ],
-        ),
-        (
-            op_name: "ScalarMath",
-            return_value: None,
-            inputs: [
-                (
-                    name: "op",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "x",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 146,
-                        param_name: "out",
-                    ),
-                ),
-                (
-                    name: "y",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out",
-                    data_type: "BJK_SCALAR",
-                ),
-            ],
-        ),
-        (
-            op_name: "MakeVector",
-            return_value: None,
-            inputs: [
-                (
-                    name: "x",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "y",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 147,
-                        param_name: "out",
-                    ),
-                ),
-                (
-                    name: "z",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "v",
-                    data_type: "BJK_VECTOR",
-                ),
-            ],
-        ),
-        (
-            op_name: "Helix",
-            return_value: Some("out_mesh"),
-            inputs: [
-                (
-                    name: "pos",
-                    data_type: "BJK_VECTOR",
-                    kind: Conection(
-                        node_idx: 148,
-                        param_name: "v",
-                    ),
-                ),
-                (
-                    name: "size",
-                    data_type: "BJK_VECTOR",
-                    kind: Conection(
-                        node_idx: 144,
-                        param_name: "out",
-                    ),
-                ),
-                (
-                    name: "start_angle",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 145,
-                        param_name: "out",
-                    ),
-                ),
-                (
-                    name: "turns",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 17,
-                        param_name: "x",
-                    ),
-                ),
-                (
-                    name: "segments",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 21,
-                        param_name: "x",
-                    ),
-                ),
-                (
-                    name: "direction",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out_mesh",
-                    data_type: "BJK_MESH",
-                ),
-            ],
-        ),
-        (
-            op_name: "Helix",
-            return_value: Some("out_mesh"),
-            inputs: [
-                (
-                    name: "pos",
-                    data_type: "BJK_VECTOR",
-                    kind: Conection(
-                        node_idx: 148,
-                        param_name: "v",
-                    ),
-                ),
-                (
-                    name: "size",
-                    data_type: "BJK_VECTOR",
-                    kind: Conection(
-                        node_idx: 144,
-                        param_name: "out",
-                    ),
-                ),
-                (
-                    name: "start_angle",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-                (
-                    name: "turns",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 17,
-                        param_name: "x",
-                    ),
-                ),
-                (
-                    name: "segments",
-                    data_type: "BJK_SCALAR",
-                    kind: Conection(
-                        node_idx: 21,
-                        param_name: "x",
-                    ),
-                ),
-                (
-                    name: "direction",
-                    data_type: "BJK_STRING",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out_mesh",
-                    data_type: "BJK_MESH",
-                ),
-            ],
-        ),
-        (
-            op_name: "ExtrudeAlongCurve",
-            return_value: Some("out_mesh"),
-            inputs: [
-                (
-                    name: "backbone",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 149,
-                        param_name: "out_mesh",
-                    ),
-                ),
-                (
-                    name: "cross_section",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 6,
-                        param_name: "out_mesh",
-                    ),
-                ),
-                (
-                    name: "flip",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out_mesh",
-                    data_type: "BJK_MESH",
-                ),
-            ],
-        ),
-        (
-            op_name: "ExtrudeAlongCurve",
-            return_value: Some("out_mesh"),
-            inputs: [
-                (
-                    name: "backbone",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 150,
-                        param_name: "out_mesh",
-                    ),
-                ),
-                (
-                    name: "cross_section",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 6,
-                        param_name: "out_mesh",
-                    ),
-                ),
-                (
-                    name: "flip",
-                    data_type: "BJK_SCALAR",
-                    kind: External(
-                        promoted: None,
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out_mesh",
-                    data_type: "BJK_MESH",
-                ),
-            ],
-        ),
-        (
-            op_name: "MergeMeshes",
-            return_value: Some("out_mesh"),
-            inputs: [
-                (
-                    name: "mesh_a",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 151,
-                        param_name: "out_mesh",
-                    ),
-                ),
-                (
-                    name: "mesh_b",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 152,
-                        param_name: "out_mesh",
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out_mesh",
-                    data_type: "BJK_MESH",
-                ),
-            ],
-        ),
-        (
-            op_name: "MergeMeshes",
-            return_value: Some("out_mesh"),
-            inputs: [
-                (
-                    name: "mesh_a",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 142,
-                        param_name: "out_mesh",
-                    ),
-                ),
-                (
-                    name: "mesh_b",
-                    data_type: "BJK_MESH",
-                    kind: Conection(
-                        node_idx: 153,
-                        param_name: "out_mesh",
-                    ),
-                ),
-            ],
-            outputs: [
-                (
-                    name: "out_mesh",
-                    data_type: "BJK_MESH",
-                ),
-            ],
-        ),
-        (
             op_name: "BFEMCage",
             return_value: Some("out_mesh"),
             inputs: [
@@ -5333,12 +4904,26 @@
                     name: "size",
                     data_type: "BJK_VECTOR",
                     kind: Conection(
-                        node_idx: 144,
+                        node_idx: 132,
                         param_name: "out",
                     ),
                 ),
                 (
                     name: "connector_length",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "exit_wire_diameter",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "exit_wire_separation",
                     data_type: "BJK_SCALAR",
                     kind: External(
                         promoted: None,
@@ -5421,7 +5006,7 @@
                     name: "mesh_a",
                     data_type: "BJK_MESH",
                     kind: Conection(
-                        node_idx: 154,
+                        node_idx: 142,
                         param_name: "out_mesh",
                     ),
                 ),
@@ -5429,7 +5014,7 @@
                     name: "mesh_b",
                     data_type: "BJK_MESH",
                     kind: Conection(
-                        node_idx: 155,
+                        node_idx: 143,
                         param_name: "out_mesh",
                     ),
                 ),
@@ -5442,7 +5027,7 @@
             ],
         ),
     ],
-    default_node: Some(156),
+    default_node: Some(144),
     ui_data: Some((
         node_positions: [
             (0.00000, 0.00000),
@@ -5588,20 +5173,8 @@
             (3240.00000, 7140.00000),
             (3600.00000, 7200.00000),
             (3960.00000, 7260.00000),
-            (0.00000, 7200.00000),
-            (360.00000, 7260.00000),
-            (720.00000, 7320.00000),
-            (1080.00000, 7380.00000),
-            (1440.00000, 7440.00000),
-            (1800.00000, 7500.00000),
-            (2160.00000, 7560.00000),
-            (2520.00000, 7620.00000),
-            (2880.00000, 7680.00000),
-            (3240.00000, 7740.00000),
-            (3600.00000, 7800.00000),
-            (3960.00000, 7860.00000),
-            (4320.00000, 7920.00000),
-            (4680.00000, 7980.00000),
+            (4320.00000, 7320.00000),
+            (4680.00000, 7380.00000),
         ],
         node_order: [
             0,
@@ -5749,18 +5322,6 @@
             142,
             143,
             144,
-            145,
-            146,
-            147,
-            148,
-            149,
-            150,
-            151,
-            152,
-            153,
-            154,
-            155,
-            156,
         ],
         pan: (0.00000, 0.00000),
         zoom: 1.0000000,
@@ -5863,7 +5424,7 @@
             (
                 node_idx: 17,
                 param_name: "x",
-            ): Scalar(11.0),
+            ): Scalar(15.0),
             (
                 node_idx: 18,
                 param_name: "comment",
@@ -5871,7 +5432,7 @@
             (
                 node_idx: 19,
                 param_name: "x",
-            ): Scalar(2.0),
+            ): Scalar(1.0),
             (
                 node_idx: 20,
                 param_name: "comment",
@@ -5963,7 +5524,7 @@
             (
                 node_idx: 37,
                 param_name: "x",
-            ): Scalar(16.363636363636363),
+            ): Scalar(18.0),
             (
                 node_idx: 37,
                 param_name: "y",
@@ -5979,7 +5540,7 @@
             (
                 node_idx: 39,
                 param_name: "y",
-            ): Scalar(0.1),
+            ): Scalar(0.1111111111111111),
             (
                 node_idx: 40,
                 param_name: "x",
@@ -5995,7 +5556,7 @@
             (
                 node_idx: 42,
                 param_name: "start_angle",
-            ): Scalar(16.363636363636363),
+            ): Scalar(18.0),
             (
                 node_idx: 42,
                 param_name: "direction",
@@ -6023,7 +5584,7 @@
             (
                 node_idx: 49,
                 param_name: "x",
-            ): Scalar(32.72727272727273),
+            ): Scalar(36.0),
             (
                 node_idx: 49,
                 param_name: "y",
@@ -6039,7 +5600,7 @@
             (
                 node_idx: 51,
                 param_name: "y",
-            ): Scalar(0.2),
+            ): Scalar(0.2222222222222222),
             (
                 node_idx: 52,
                 param_name: "x",
@@ -6055,7 +5616,7 @@
             (
                 node_idx: 54,
                 param_name: "start_angle",
-            ): Scalar(32.72727272727273),
+            ): Scalar(36.0),
             (
                 node_idx: 54,
                 param_name: "direction",
@@ -6083,7 +5644,7 @@
             (
                 node_idx: 61,
                 param_name: "x",
-            ): Scalar(49.09090909090909),
+            ): Scalar(54.0),
             (
                 node_idx: 61,
                 param_name: "y",
@@ -6099,7 +5660,7 @@
             (
                 node_idx: 63,
                 param_name: "y",
-            ): Scalar(0.3),
+            ): Scalar(0.3333333333333333),
             (
                 node_idx: 64,
                 param_name: "x",
@@ -6115,7 +5676,7 @@
             (
                 node_idx: 66,
                 param_name: "start_angle",
-            ): Scalar(49.09090909090909),
+            ): Scalar(54.0),
             (
                 node_idx: 66,
                 param_name: "direction",
@@ -6143,7 +5704,7 @@
             (
                 node_idx: 73,
                 param_name: "x",
-            ): Scalar(65.45454545454545),
+            ): Scalar(72.0),
             (
                 node_idx: 73,
                 param_name: "y",
@@ -6159,7 +5720,7 @@
             (
                 node_idx: 75,
                 param_name: "y",
-            ): Scalar(0.4),
+            ): Scalar(0.4444444444444444),
             (
                 node_idx: 76,
                 param_name: "x",
@@ -6175,7 +5736,7 @@
             (
                 node_idx: 78,
                 param_name: "start_angle",
-            ): Scalar(65.45454545454545),
+            ): Scalar(72.0),
             (
                 node_idx: 78,
                 param_name: "direction",
@@ -6203,7 +5764,7 @@
             (
                 node_idx: 85,
                 param_name: "x",
-            ): Scalar(81.81818181818181),
+            ): Scalar(90.0),
             (
                 node_idx: 85,
                 param_name: "y",
@@ -6219,7 +5780,7 @@
             (
                 node_idx: 87,
                 param_name: "y",
-            ): Scalar(0.5),
+            ): Scalar(0.5555555555555556),
             (
                 node_idx: 88,
                 param_name: "x",
@@ -6235,7 +5796,7 @@
             (
                 node_idx: 90,
                 param_name: "start_angle",
-            ): Scalar(81.81818181818181),
+            ): Scalar(90.0),
             (
                 node_idx: 90,
                 param_name: "direction",
@@ -6263,7 +5824,7 @@
             (
                 node_idx: 97,
                 param_name: "x",
-            ): Scalar(98.18181818181819),
+            ): Scalar(108.0),
             (
                 node_idx: 97,
                 param_name: "y",
@@ -6279,7 +5840,7 @@
             (
                 node_idx: 99,
                 param_name: "y",
-            ): Scalar(0.6),
+            ): Scalar(0.6666666666666666),
             (
                 node_idx: 100,
                 param_name: "x",
@@ -6295,7 +5856,7 @@
             (
                 node_idx: 102,
                 param_name: "start_angle",
-            ): Scalar(98.18181818181819),
+            ): Scalar(108.0),
             (
                 node_idx: 102,
                 param_name: "direction",
@@ -6323,7 +5884,7 @@
             (
                 node_idx: 109,
                 param_name: "x",
-            ): Scalar(114.54545454545455),
+            ): Scalar(126.0),
             (
                 node_idx: 109,
                 param_name: "y",
@@ -6339,7 +5900,7 @@
             (
                 node_idx: 111,
                 param_name: "y",
-            ): Scalar(0.7),
+            ): Scalar(0.7777777777777778),
             (
                 node_idx: 112,
                 param_name: "x",
@@ -6355,7 +5916,7 @@
             (
                 node_idx: 114,
                 param_name: "start_angle",
-            ): Scalar(114.54545454545455),
+            ): Scalar(126.0),
             (
                 node_idx: 114,
                 param_name: "direction",
@@ -6383,7 +5944,7 @@
             (
                 node_idx: 121,
                 param_name: "x",
-            ): Scalar(130.9090909090909),
+            ): Scalar(144.0),
             (
                 node_idx: 121,
                 param_name: "y",
@@ -6399,7 +5960,7 @@
             (
                 node_idx: 123,
                 param_name: "y",
-            ): Scalar(0.8),
+            ): Scalar(0.8888888888888888),
             (
                 node_idx: 124,
                 param_name: "x",
@@ -6415,7 +5976,7 @@
             (
                 node_idx: 126,
                 param_name: "start_angle",
-            ): Scalar(130.9090909090909),
+            ): Scalar(144.0),
             (
                 node_idx: 126,
                 param_name: "direction",
@@ -6443,7 +6004,7 @@
             (
                 node_idx: 133,
                 param_name: "x",
-            ): Scalar(147.27272727272728),
+            ): Scalar(162.0),
             (
                 node_idx: 133,
                 param_name: "y",
@@ -6459,7 +6020,7 @@
             (
                 node_idx: 135,
                 param_name: "y",
-            ): Scalar(0.9),
+            ): Scalar(1.0),
             (
                 node_idx: 136,
                 param_name: "x",
@@ -6475,7 +6036,7 @@
             (
                 node_idx: 138,
                 param_name: "start_angle",
-            ): Scalar(147.27272727272728),
+            ): Scalar(162.0),
             (
                 node_idx: 138,
                 param_name: "direction",
@@ -6490,84 +6051,32 @@
             ): Scalar(1.0),
             (
                 node_idx: 143,
-                param_name: "comment",
-            ): String("This is coil pair #11:"),
-            (
-                node_idx: 144,
-                param_name: "op",
-            ): String("Add"),
-            (
-                node_idx: 145,
-                param_name: "op",
-            ): String("Add"),
-            (
-                node_idx: 145,
-                param_name: "x",
-            ): Scalar(163.63636363636363),
-            (
-                node_idx: 145,
-                param_name: "y",
-            ): Scalar(180.0),
-            (
-                node_idx: 146,
-                param_name: "op",
-            ): String("Add"),
-            (
-                node_idx: 147,
-                param_name: "op",
-            ): String("Mul"),
-            (
-                node_idx: 147,
-                param_name: "y",
-            ): Scalar(1.0),
-            (
-                node_idx: 148,
-                param_name: "x",
-            ): Scalar(0.0),
-            (
-                node_idx: 148,
-                param_name: "z",
-            ): Scalar(0.0),
-            (
-                node_idx: 149,
-                param_name: "direction",
-            ): String("Clockwise"),
-            (
-                node_idx: 150,
-                param_name: "start_angle",
-            ): Scalar(163.63636363636363),
-            (
-                node_idx: 150,
-                param_name: "direction",
-            ): String("Clockwise"),
-            (
-                node_idx: 151,
-                param_name: "flip",
-            ): Scalar(1.0),
-            (
-                node_idx: 152,
-                param_name: "flip",
-            ): Scalar(1.0),
-            (
-                node_idx: 155,
                 param_name: "pos",
             ): Vector((0.0, 0.0, 0.0)),
             (
-                node_idx: 155,
+                node_idx: 143,
                 param_name: "connector_length",
-            ): Scalar(10.0),
+            ): Scalar(12.0),
             (
-                node_idx: 155,
+                node_idx: 143,
+                param_name: "exit_wire_diameter",
+            ): Scalar(1.0),
+            (
+                node_idx: 143,
+                param_name: "exit_wire_separation",
+            ): Scalar(6.0),
+            (
+                node_idx: 143,
                 param_name: "front_thickness",
             ): Scalar(1.0),
             (
-                node_idx: 155,
+                node_idx: 143,
                 param_name: "back_thickness",
             ): Scalar(1.0),
             (
-                node_idx: 155,
+                node_idx: 143,
                 param_name: "num_pairs",
-            ): Scalar(11.0),
+            ): Scalar(10.0),
         },
     )),
 )

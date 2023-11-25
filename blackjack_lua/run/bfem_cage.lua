@@ -415,7 +415,6 @@ NodeLibrary:addNodes(
                         Ops.merge(out_mesh, face)
 
                         -- now make the exit wire cylinders
-                        local edge_normal = V.normalize((points[2]-points[1]))
                         local inner_wire_post_center = center_of_face(points) + vector(0,flat_top_height,0)
                         local inner_wire_pos = inner_wire_post_center
                         local outer_wire_radius = (inner_radius + outer_radius)/2
@@ -436,7 +435,7 @@ NodeLibrary:addNodes(
                             local p2 = outer_wire_post_center
                             local v2 = vertex_at({
                                 center = vector(inputs.pos.x, inner_wire_pos.y, inputs.pos.z),
-                                radius = outer_radius,
+                                radius = (inner_radius + outer_radius)/2,
                                 angle = outer_wire_start_angle,
                             })
                             local v21len = V.length(v2-v1)
