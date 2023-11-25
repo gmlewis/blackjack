@@ -13,10 +13,40 @@ local function reverse(points)
     return rev
 end
 
+-- make_vertical_post_wedge generates a vertical wire post wedge at a given radius and start_angle.
+--
+-- args:
+--     pos -- vector(x,y,z) - origin corner of base face of vertical post
+--     inner_radius -- inner radius of vertical wire post
+--     start_angle -- start angle of wire post
+--     normal_angle -- 90 degree rotation of start_angle in the outward direction
+--     post_height -- height of wire post
+--     wire_width -- width and depth of wire post at the inner_radius
+--
+local make_vertical_post_wedge = function(t)
+    local sx4 = t.pos.x + t.inner_radius * math.cos(t.start_angle)
+    local sz4 = t.pos.z + t.inner_radius * math.sin(t.start_angle)
+    local sx1 = sx4 + t.wire_width * math.cos(t.normal_angle)
+    local sz1 = sz4 + t.wire_width * math.sin(t.normal_angle)
+    local sx2 = t.pos.x + (t.inner_radius + t.wire_width) * math.cos(t.start_angle)
+    local sz2 = t.pos.z + (t.inner_radius + t.wire_width) * math.sin(t.start_angle)
+    local sx3 = sx2 + t.wire_width * math.cos(t.normal_angle)
+    local sz3 = sz2 + t.wire_width * math.sin(t.normal_angle)
+    local points = {
+        vector(sx1, t.pos.y, sz1),
+        vector(sx4, t.pos.y, sz4),
+        vector(sx2, t.pos.y, sz2),
+        vector(sx3, t.pos.y, sz3),
+    }
+    local face = Primitives.polygon(points)
+    Ops.extrude_with_caps(all_faces_selection, t.post_height, face)
+    return face
+end
+
 -- make_rotated_vert_wire_arc_wedge generates a vertical arc wedge of wire.
 --
 -- args:
---     pos -- vector(x,y,z) - center of base face of vertical wedge
+--     pos -- vector(x,y,z) - origin corner of base face of vertical wedge
 --     inner_radius -- inner radius of arc
 --     start_angle -- start angle of arc
 --     end_angle -- end angle of arc
@@ -311,16 +341,15 @@ NodeLibrary:addNodes(
                     end
                     if i < inputs.num_pairs then
                         -- this is the "up" part of the "up-and-over" connector on the back/top of the design for the even coils:
-                        local points = {
-                            vector(sx1, top_helix_y, sz1),
-                            vector(sx4, top_helix_y, sz4),
-                            vector(sx2, top_helix_y, sz2),
-                            vector(sx3, top_helix_y, sz3),
-                        }
-                        local face = Primitives.polygon(points)
-                        -- local over_height = axial_connector_top_ys[(inputs.num_pairs - i) % inputs.num_pairs + 1] - top_helix_y
                         local over_height = max_axial_connector_top_ys - top_helix_y + inputs.back_thickness  -- flat top/back (connector side)
-                        Ops.extrude_with_caps(all_faces_selection, over_height, face)
+                        local face = make_vertical_post_wedge({
+                                pos = vector(inputs.pos.x,0,inputs.pos.z) + vector(0,top_helix_y,0),
+                                inner_radius = connector_radius,
+                                start_angle = top_angle + math.pi,
+                                normal_angle = top_angle + math.pi/2,
+                                post_height = over_height,
+                                wire_width = inputs.wire_width,
+                        })
                         Ops.merge(out_mesh, face)
                         -- this is the "over" part of the "up-and-over" connector on the back/top of the design for the even coils:
                         local over_start_angle = -(i) * rail_angle_delta + math.pi
