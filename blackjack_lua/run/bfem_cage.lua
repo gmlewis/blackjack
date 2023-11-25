@@ -14,9 +14,10 @@ local function reverse(points)
 end
 
 -- make_vertical_post_wedge generates a vertical wire post wedge at a given radius and start_angle.
+-- It extrudes upward.
 --
 -- args:
---     pos -- vector(x,y,z) - origin corner of base face of vertical post
+--     pos -- vector(x,y,z) - lower origin corner of base face of vertical post
 --     inner_radius -- inner radius of vertical wire post
 --     start_angle -- start angle of wire post
 --     normal_angle -- 90 degree rotation of start_angle in the outward direction
@@ -52,9 +53,10 @@ local make_vertical_post_wedge = function(t)
 end
 
 -- make_rotated_vert_wire_arc_wedge generates a vertical arc wedge of wire.
+-- It extrudes upward.
 --
 -- args:
---     pos -- vector(x,y,z) - origin corner of base face of vertical wedge
+--     pos -- vector(x,y,z) - lower origin corner of base face of vertical wedge
 --     inner_radius -- inner radius of arc
 --     start_angle -- start angle of arc
 --     end_angle -- end angle of arc
