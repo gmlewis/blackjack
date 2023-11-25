@@ -2,12 +2,51 @@ local P = require("params")
 local NodeLibrary = require("node_library")
 local V = require("vector_math")
 
+local all_faces_selection = SelectionExpression.new("*")
+
+-- reverse reverses the order of the points, thereby inverting a face's normal.
+local function reverse(points)
+    local rev = {}
+    for i=#points, 1, -1 do
+        rev[#rev+1] = points[i]
+    end
+    return rev
+end
+
+-- make_rotated_vert_wire_arc_wedge generates a vertical arc wedge of wire.
+--
+-- args:
+--     pos -- vector(x,y,z) - center of base face of vertical wedge
+--     inner_radius -- inner radius of arc
+--     start_angle -- start angle of arc
+--     end_angle -- end angle of arc
+--     arc_width_and_height -- width of arc and height of wedge
+--
+local make_rotated_vert_wire_arc_wedge = function(t)
+    local sx4 = t.pos.x + t.inner_radius * math.cos(t.start_angle)
+    local sz4 = t.pos.z + t.inner_radius * math.sin(t.start_angle)
+    local sx2 = t.pos.x + (t.inner_radius + t.arc_width_and_height) * math.cos(t.start_angle)
+    local sz2 = t.pos.z + (t.inner_radius + t.arc_width_and_height) * math.sin(t.start_angle)
+    local sx5 = t.pos.x + t.inner_radius * math.cos(t.end_angle)
+    local sz5 = t.pos.z + t.inner_radius * math.sin(t.end_angle)
+    local sx6 = t.pos.x + (t.inner_radius + t.arc_width_and_height) * math.cos(t.end_angle)
+    local sz6 = t.pos.z + (t.inner_radius + t.arc_width_and_height) * math.sin(t.end_angle)
+    local points = {
+        vector(sx5, t.pos.y, sz5),
+        vector(sx6, t.pos.y, sz6),
+        vector(sx2, t.pos.y, sz2),
+        vector(sx4, t.pos.y, sz4),
+    }
+    local face = Primitives.polygon(points)
+    Ops.extrude_with_caps(all_faces_selection, t.arc_width_and_height, face)
+    return face
+end
+
 NodeLibrary:addNodes(
     {
         BFEMCage = {
             label = "Bifilar Electromagnet Cage",
             op = function(inputs)
-                local all_faces_selection = SelectionExpression.new("*")
                 local segments_per_rail = math.ceil(inputs.segments / inputs.num_pairs / 2)
                 if segments_per_rail < 2 then
                     segments_per_rail = 2
@@ -28,14 +67,6 @@ NodeLibrary:addNodes(
 
                 local delta_y = inputs.num_pairs > 1 and
                     (inputs.wire_gap + inputs.wire_width) / (inputs.num_pairs - 1) or 0
-
-                local function reverse(points)
-                    local rev = {}
-                    for i=#points, 1, -1 do
-                        rev[#rev+1] = points[i]
-                    end
-                    return rev
-                end
 
                 local function new_point(j, start_angle, angle_delta, r, y, points)
                     local angle = start_angle + j * angle_delta
@@ -302,18 +333,13 @@ NodeLibrary:addNodes(
                     end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
                     if i > 1 then
-                        local sx5 = inputs.pos.x + connector_radius * math.cos(rotation + math.pi)
-                        local sz5 = inputs.pos.z + connector_radius * math.sin(rotation + math.pi)
-                        local sx6 = inputs.pos.x + (connector_radius + inputs.wire_width) * math.cos(rotation + math.pi)
-                        local sz6 = inputs.pos.z + (connector_radius + inputs.wire_width) * math.sin(rotation + math.pi)
-                        local points = {
-                            vector(sx5, top_helix_y, sz5),
-                            vector(sx6, top_helix_y, sz6),
-                            vector(sx2, top_helix_y, sz2),
-                            vector(sx4, top_helix_y, sz4),
-                        }
-                        local face = Primitives.polygon(points)
-                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width, face)
+                        local face = make_rotated_vert_wire_arc_wedge({
+                                pos = vector(inputs.pos.x,0,inputs.pos.z) + vector(0,top_helix_y,0),
+                                inner_radius = connector_radius,
+                                start_angle = top_angle + math.pi,
+                                end_angle = rotation + math.pi,
+                                arc_width_and_height = inputs.wire_width,
+                        })
                         Ops.merge(out_mesh, face)
                     end
                 end
