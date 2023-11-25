@@ -86,6 +86,31 @@ local make_rotated_vert_wire_arc_wedge = function(t)
     }
 end
 
+-- make_exit_wire_cylinder makes a n-sided vertical cylinder at the given position with the height and radius.
+--
+-- args:
+--     pos -- vector(x,y,z) - center of cylinder base
+--     radius -- radius of cylinder
+--     segments -- number of radial segments
+--     height -- height of cylinder
+--
+-- returns table of:
+--     mesh - mesh of generated geometry
+local make_exit_wire_cylinder = function(t)
+    local points = {}
+    for i = 1, t.segments do
+        local angle = -i * 2*math.pi / t.segments  -- face downward
+        local x = t.pos.x + t.radius * math.cos(angle)
+        local z = t.pos.z + t.radius * math.sin(angle)
+        table.insert(points, vector(x,t.pos.y,z))
+    end
+    local face = Primitives.polygon(points)
+    Ops.extrude_with_caps(all_faces_selection, t.height, face)
+    return {
+        mesh = face,
+    }
+end
+
 NodeLibrary:addNodes(
     {
         BFEMCage = {
@@ -160,7 +185,8 @@ NodeLibrary:addNodes(
 
                     if i == 0 then
                         -- final output connector of coil 1 (at outer edge)
-                        Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length + inputs.front_thickness + inputs.back_thickness, new_mesh)
+                        -- Ops.extrude_with_caps(all_faces_selection, extrude_height + inputs.connector_length + inputs.front_thickness + inputs.back_thickness, new_mesh)
+                        Ops.extrude_with_caps(all_faces_selection, extrude_height + 1.5*inputs.wire_width + inputs.front_thickness + inputs.back_thickness, new_mesh)
                         out_mesh = new_mesh
                     else
                         -- Ops.extrude_with_caps(all_faces_selection, max_axial_connector_top_ys-y, new_mesh)
@@ -346,8 +372,19 @@ NodeLibrary:addNodes(
                             vector(sx2, top_helix_y, sz2),
                         }
                         local face = Primitives.polygon(points)
-                        Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length + inputs.back_thickness, face)
+                        -- Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length + inputs.back_thickness, face)
+                        Ops.extrude_with_caps(all_faces_selection, 2.5*inputs.wire_width + inputs.back_thickness, face)
                         Ops.merge(out_mesh, face)
+                        -- now make the exit wire cylinder
+                        local edge_normal = V.normalize((points[2]-points[1]))
+                        local pos = 0.5 * (points[1] + points[4]) + vector(0,2.5*inputs.wire_width + inputs.back_thickness,0) + (edge_normal * inputs.exit_wire_diameter/2)
+                        local exit_wire = make_exit_wire_cylinder({
+                                pos = pos,
+                                radius = inputs.exit_wire_diameter/2,
+                                segments = 36,
+                                height = inputs.connector_length,
+                        })
+                        Ops.merge(out_mesh, exit_wire.mesh)
                     else
                         local extrude_amount = 2 * inputs.wire_width + inputs.wire_gap
                         Ops.extrude_with_caps(all_faces_selection, extrude_amount + inputs.back_thickness, face)
@@ -394,7 +431,9 @@ NodeLibrary:addNodes(
             inputs = {
                 P.v3("pos", vector(0, 0, 0)),  -- pos is lowered by wire_width/2
                 P.v3("size", vector(10, 0, 10)),  -- wire_width/2 + wire_gap is added to size.
-                P.scalar("connector_length", {default=10, min=0, soft_max = 33}),
+                P.scalar("connector_length", {default=12, min=0, soft_max = 33}),
+                P.scalar("exit_wire_diameter", {default = 1, min = 0, soft_max = 10}),
+                P.scalar("exit_wire_separation", {default = 6, min = 0, soft_max = 10}),
                 P.scalar("front_thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("back_thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("radial_thickness", {default = 2, min = 0, soft_max = 10}),
