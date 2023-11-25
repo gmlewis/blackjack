@@ -5,12 +5,44 @@ local V = require("vector_math")
 local all_faces_selection = SelectionExpression.new("*")
 
 -- reverse reverses the order of the points, thereby inverting a face's normal.
-local function reverse(points)
+local reverse = function(points)
     local rev = {}
     for i=#points, 1, -1 do
         rev[#rev+1] = points[i]
     end
     return rev
+end
+
+-- vertex_at generates a vertex at an angle and radius.
+--
+-- args:
+--     center -- center of circle
+--     radius -- radius of vertex
+--     angle  -- angle of of vertex in radians
+--
+-- returns:
+--     vertex (as a vector)
+local vertex_at = function(t)
+    return vector(
+        t.center.x + t.radius * math.cos(t.angle),
+        t.center.y,
+        t.center.z + t.radius * math.sin(t.angle))
+end
+
+-- center_of_face returns the center point of a face.
+--
+-- args:
+--     points -- table of points (vectors)
+--
+--
+-- returns:
+--     vector representing center of face
+local center_of_face = function(points)
+    local sum = vector(0,0,0)
+    for _, v in pairs(points) do
+        sum = sum + v
+    end
+    return sum / #points
 end
 
 -- make_vertical_post_wedge generates a vertical wire post wedge at a given radius and start_angle.
@@ -361,30 +393,73 @@ NodeLibrary:addNodes(
                         Ops.merge(out_mesh, face)
                         -- generate inner final output connector of last coil with same radial thickness as other connector
                         local angle_diff = rail_angle_delta - 2*outer_dtheta
-                        local sx2 = inputs.pos.x + (connector_radius - inputs.radial_thickness) * math.cos(top_angle + math.pi)
-                        local sz2 = inputs.pos.z + (connector_radius - inputs.radial_thickness) * math.sin(top_angle + math.pi)
-                        local sx3 = inputs.pos.x + (connector_radius - inputs.radial_thickness) * math.cos(top_angle + math.pi - angle_diff)
-                        local sz3 = inputs.pos.z + (connector_radius - inputs.radial_thickness) * math.sin(top_angle + math.pi - angle_diff)
+                        local s2 = vertex_at({
+                                center = vector(inputs.pos.x, top_helix_y, inputs.pos.z),
+                                radius = connector_radius - inputs.exit_wire_separation/2 - inputs.exit_wire_diameter,
+                                angle = top_angle + math.pi,
+                        })
+                        local s3 = vertex_at({
+                                center = vector(inputs.pos.x, top_helix_y, inputs.pos.z),
+                                radius = connector_radius - inputs.exit_wire_separation/2 - inputs.exit_wire_diameter,
+                                angle = top_angle + math.pi - angle_diff,
+                        })
                         local points = {
                             vector(sx4, top_helix_y, sz4),
                             vector(sx1, top_helix_y, sz1),
-                            vector(sx3, top_helix_y, sz3),
-                            vector(sx2, top_helix_y, sz2),
+                            s3,
+                            s2,
                         }
                         local face = Primitives.polygon(points)
-                        -- Ops.extrude_with_caps(all_faces_selection, inputs.wire_width + inputs.connector_length + inputs.back_thickness, face)
-                        Ops.extrude_with_caps(all_faces_selection, 2.5*inputs.wire_width + inputs.back_thickness, face)
+                        local flat_top_height = 2.5*inputs.wire_width + inputs.back_thickness
+                        Ops.extrude_with_caps(all_faces_selection, flat_top_height, face)
                         Ops.merge(out_mesh, face)
-                        -- now make the exit wire cylinder
+
+                        -- now make the exit wire cylinders
                         local edge_normal = V.normalize((points[2]-points[1]))
-                        local pos = 0.5 * (points[1] + points[4]) + vector(0,2.5*inputs.wire_width + inputs.back_thickness,0) + (edge_normal * inputs.exit_wire_diameter/2)
-                        local exit_wire = make_exit_wire_cylinder({
-                                pos = pos,
+                        local inner_wire_post_center = center_of_face(points) + vector(0,flat_top_height,0)
+                        local inner_wire_pos = inner_wire_post_center
+                        local outer_wire_radius = (inner_radius + outer_radius)/2
+                        local outer_wire_dtheta = math.asin(inputs.wire_gap / (2 * outer_wire_radius))
+                        local outer_wire_start_angle = 0
+                        local outer_wire_end_angle = rail_angle_delta - 2*outer_wire_dtheta
+                        local outer_wire_post_center = vertex_at({
+                                center = vector(inputs.pos.x, inner_wire_pos.y, inputs.pos.z),
+                                radius = outer_wire_radius,
+                                angle = (outer_wire_end_angle-outer_wire_start_angle)/2,
+                        })
+                        local outer_wire_pos = outer_wire_post_center
+                        outer_wire_pos = vector(outer_wire_pos.x, inner_wire_pos.y, outer_wire_pos.z)
+                        local centers_distance = V.length(outer_wire_post_center - inner_wire_post_center)
+                        if centers_distance < inputs.exit_wire_separation then
+                            local p1 = inner_wire_post_center
+                            local v1 = vector(points[4].x, inner_wire_pos.y, points[4].z)
+                            local p2 = outer_wire_post_center
+                            local v2 = vertex_at({
+                                center = vector(inputs.pos.x, inner_wire_pos.y, inputs.pos.z),
+                                radius = outer_radius,
+                                angle = outer_wire_start_angle,
+                            })
+                            local v21len = V.length(v2-v1)
+                            local t = (inputs.exit_wire_separation - centers_distance) / (v21len - centers_distance)
+                            inner_wire_pos = p1 + t*(v1-p1)
+                            outer_wire_pos = p2 + t*(v2-p2)
+                        end
+
+                        local inner_exit_wire = make_exit_wire_cylinder({
+                                pos = inner_wire_pos,
                                 radius = inputs.exit_wire_diameter/2,
-                                segments = 36,
+                                segments = 12,
                                 height = inputs.connector_length,
                         })
-                        Ops.merge(out_mesh, exit_wire.mesh)
+                        Ops.merge(out_mesh, inner_exit_wire.mesh)
+
+                        local outer_exit_wire = make_exit_wire_cylinder({
+                                pos = outer_wire_pos,
+                                radius = inputs.exit_wire_diameter/2,
+                                segments = 12,
+                                height = inputs.connector_length,
+                        })
+                        Ops.merge(out_mesh, outer_exit_wire.mesh)
                     else
                         local extrude_amount = 2 * inputs.wire_width + inputs.wire_gap
                         Ops.extrude_with_caps(all_faces_selection, extrude_amount + inputs.back_thickness, face)
