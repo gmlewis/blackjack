@@ -5345,14 +5345,21 @@
                     ),
                 ),
                 (
-                    name: "shift_mixer",
+                    name: "front_thickness",
                     data_type: "BJK_SCALAR",
                     kind: External(
                         promoted: None,
                     ),
                 ),
                 (
-                    name: "thickness",
+                    name: "back_thickness",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "radial_thickness",
                     data_type: "BJK_SCALAR",
                     kind: Conection(
                         node_idx: 19,
@@ -6551,7 +6558,11 @@
             ): Scalar(10.0),
             (
                 node_idx: 155,
-                param_name: "shift_mixer",
+                param_name: "front_thickness",
+            ): Scalar(1.0),
+            (
+                node_idx: 155,
+                param_name: "back_thickness",
             ): Scalar(1.0),
             (
                 node_idx: 155,
