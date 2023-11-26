@@ -48,7 +48,7 @@ end
 --     angle  -- angle of of vertex in radians
 --
 -- returns:
---     vertex (as a vector)
+--     vertex -- (as a vector)
 local vertex_at = function(t)
     return vector(
         t.center.x + t.radius * math.cos(t.angle),
@@ -63,7 +63,7 @@ end
 --
 --
 -- returns:
---     vector representing center of face
+--     vector -- represents center of face
 local center_of_face = function(points)
     local sum = vector(0,0,0)
     for _, v in pairs(points) do
@@ -84,9 +84,9 @@ end
 --     wire_width -- width and depth of wire post at the inner_radius
 --
 -- returns table of:
---     mesh - mesh of generated geometry
---     top_p0 - corner vertex of top connection edge
---     top_p1 - other vertex of top connection edge
+--     mesh -- mesh of generated geometry
+--     top_p0 -- corner vertex of top connection edge
+--     top_p1 -- other vertex of top connection edge
 local make_vertical_post_wedge = function(t)
     local sx4 = t.pos.x + t.inner_radius * math.cos(t.start_angle)
     local sz4 = t.pos.z + t.inner_radius * math.sin(t.start_angle)
@@ -111,7 +111,7 @@ local make_vertical_post_wedge = function(t)
     }
 end
 
--- make_rotated_vert_wire_arc_wedge generates a vertical arc wedge of wire.
+-- make_wedge generates a vertical wedge.
 -- It extrudes upward.
 --
 -- args:
@@ -119,19 +119,21 @@ end
 --     inner_radius -- inner radius of arc
 --     start_angle -- start angle of arc
 --     end_angle -- end angle of arc
---     arc_width_and_height -- width of arc and height of wedge
+--     radial_length -- radial length of wedge
+--     height -- height of wedge
 --
 -- returns table of:
 --     mesh - mesh of generated geometry
-local make_rotated_vert_wire_arc_wedge = function(t)
+--     points -- vertices around the base circle
+local make_wedge = function(t)
     local sx4 = t.pos.x + t.inner_radius * math.cos(t.start_angle)
     local sz4 = t.pos.z + t.inner_radius * math.sin(t.start_angle)
-    local sx2 = t.pos.x + (t.inner_radius + t.arc_width_and_height) * math.cos(t.start_angle)
-    local sz2 = t.pos.z + (t.inner_radius + t.arc_width_and_height) * math.sin(t.start_angle)
+    local sx2 = t.pos.x + (t.inner_radius + t.radial_length) * math.cos(t.start_angle)
+    local sz2 = t.pos.z + (t.inner_radius + t.radial_length) * math.sin(t.start_angle)
     local sx5 = t.pos.x + t.inner_radius * math.cos(t.end_angle)
     local sz5 = t.pos.z + t.inner_radius * math.sin(t.end_angle)
-    local sx6 = t.pos.x + (t.inner_radius + t.arc_width_and_height) * math.cos(t.end_angle)
-    local sz6 = t.pos.z + (t.inner_radius + t.arc_width_and_height) * math.sin(t.end_angle)
+    local sx6 = t.pos.x + (t.inner_radius + t.radial_length) * math.cos(t.end_angle)
+    local sz6 = t.pos.z + (t.inner_radius + t.radial_length) * math.sin(t.end_angle)
     local points = {
         vector(sx5, t.pos.y, sz5),
         vector(sx6, t.pos.y, sz6),
@@ -139,13 +141,14 @@ local make_rotated_vert_wire_arc_wedge = function(t)
         vector(sx4, t.pos.y, sz4),
     }
     local face = Primitives.polygon(points)
-    Ops.extrude_with_caps(all_faces_selection, t.arc_width_and_height, face)
+    Ops.extrude_with_caps(all_faces_selection, t.height, face)
     return {
         mesh = face,
+        points = points,
     }
 end
 
--- make_exit_wire_cylinder makes a n-sided vertical cylinder at the given position with the height and radius.
+-- make_cylinder makes a n-sided vertical cylinder at the given position with the height and radius.
 --
 -- args:
 --     pos -- vector(x,y,z) - center of cylinder base
@@ -154,8 +157,9 @@ end
 --     height -- height of cylinder
 --
 -- returns table of:
---     mesh - mesh of generated geometry
-local make_exit_wire_cylinder = function(t)
+--     mesh -- mesh of generated geometry
+--     points -- vertices around the base circle
+local make_cylinder = function(t)
     local points = {}
     for i = 1, t.segments do
         local angle = -i * 2*math.pi / t.segments  -- face downward
@@ -167,6 +171,7 @@ local make_exit_wire_cylinder = function(t)
     Ops.extrude_with_caps(all_faces_selection, t.height, face)
     return {
         mesh = face,
+        points = points,
     }
 end
 
@@ -475,7 +480,7 @@ NodeLibrary:addNodes(
                             outer_wire_pos = f2(t)
                         end
 
-                        local inner_exit_wire = make_exit_wire_cylinder({
+                        local inner_exit_wire = make_cylinder({
                                 pos = inner_wire_pos,
                                 radius = inputs.exit_wire_diameter/2,
                                 segments = 12,
@@ -483,7 +488,7 @@ NodeLibrary:addNodes(
                         })
                         Ops.merge(out_mesh, inner_exit_wire.mesh)
 
-                        local outer_exit_wire = make_exit_wire_cylinder({
+                        local outer_exit_wire = make_cylinder({
                                 pos = outer_wire_pos,
                                 radius = inputs.exit_wire_diameter/2,
                                 segments = 12,
@@ -518,14 +523,61 @@ NodeLibrary:addNodes(
                     end
                     -- for all but the first connector, the helix needs to be connected to the shifted connector
                     if i > 1 then
-                        local wire = make_rotated_vert_wire_arc_wedge({
+                        local wire = make_wedge({
                                 pos = vector(inputs.pos.x,0,inputs.pos.z) + vector(0,top_helix_y,0),
                                 inner_radius = connector_radius,
                                 start_angle = top_angle + math.pi,
                                 end_angle = rotation + math.pi,
-                                arc_width_and_height = inputs.wire_width,
+                                radial_length = inputs.wire_width,
+                                height = inputs.wire_width,
                         })
                         Ops.merge(out_mesh, wire.mesh)
+                    end
+                end
+
+                -- pos = inputs.pos - vector(0, inputs.wire_width/2 + inputs.tolerance, 0),
+                local shaft_pos = inputs.pos - vector(0, inputs.wire_width/2 + inputs.front_thickness, 0)
+                local shaft_radius = inputs.inner_radius - inputs.tolerance
+                local front_inner_shaft = make_cylinder({
+                        pos = shaft_pos,
+                        radius = shaft_radius,
+                        segments = inputs.segments,
+                        height = coil_height + inputs.front_thickness,  -- flush with top coil
+                })
+                Ops.merge(out_mesh, front_inner_shaft.mesh)
+
+                local wedge_start_angle = math.asin(inputs.tolerance) + rail_angle_delta
+                local wedge_end_angle = math.pi - math.asin(inputs.tolerance)
+                local dy = inputs.size.y / inputs.segments
+                for i = 1, inputs.segments/2 do
+                    local angle = (i-1)*2*math.pi/inputs.segments
+                    local next_angle = i*2*math.pi/inputs.segments
+                    if angle > wedge_start_angle and next_angle < wedge_end_angle then
+                        local t = (angle - wedge_start_angle) / (wedge_end_angle - wedge_start_angle)
+                        local arm_index = 3 + math.floor(t * (#line_lengths-2))
+                        local r = line_lengths[arm_index]
+                        -- if angle > -rotations[arm_index] and arm_index+1 <= #line_lengths then
+                        --     r = line_lengths[arm_index+1]
+                        -- end
+                        local height = inputs.wire_width + ((math.pi - angle)/math.pi)*inputs.size.y/2 - inputs.tolerance
+                        local wedge = make_wedge({
+                                pos = shaft_pos,
+                                inner_radius = shaft_radius,
+                                start_angle = angle,
+                                end_angle = next_angle,
+                                radial_length = r,
+                                height = height,
+                        })
+                        Ops.merge(out_mesh, wedge.mesh)
+                        local wedge = make_wedge({
+                                pos = shaft_pos,
+                                inner_radius = shaft_radius,
+                                start_angle = angle + math.pi,
+                                end_angle = next_angle + math.pi,
+                                radial_length = r,
+                                height = height,
+                        })
+                        Ops.merge(out_mesh, wedge.mesh)
                     end
                 end
 
@@ -542,6 +594,8 @@ NodeLibrary:addNodes(
                 P.scalar("front_thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("back_thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("radial_thickness", {default = 2, min = 0, soft_max = 10}),
+                P.scalar("inner_radius", {default = 1, min = 0, soft_max = 10}),
+                P.scalar("tolerance", {default = 0.1, min = 0, soft_max = 10}),
                 P.scalar("turns", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_gap", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("wire_width", {default = 1, min = 0, soft_max = 10}),

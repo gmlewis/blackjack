@@ -4952,6 +4952,21 @@
                     ),
                 ),
                 (
+                    name: "inner_radius",
+                    data_type: "BJK_SCALAR",
+                    kind: Conection(
+                        node_idx: 1,
+                        param_name: "x",
+                    ),
+                ),
+                (
+                    name: "tolerance",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
                     name: "turns",
                     data_type: "BJK_SCALAR",
                     kind: Conection(
@@ -6073,6 +6088,10 @@
                 node_idx: 143,
                 param_name: "back_thickness",
             ): Scalar(1.0),
+            (
+                node_idx: 143,
+                param_name: "tolerance",
+            ): Scalar(0.1),
             (
                 node_idx: 143,
                 param_name: "num_pairs",
