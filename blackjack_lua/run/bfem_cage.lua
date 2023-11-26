@@ -393,14 +393,15 @@ NodeLibrary:addNodes(
                         Ops.merge(out_mesh, face)
                         -- generate inner final output connector of last coil with same radial thickness as other connector
                         local angle_diff = rail_angle_delta - 2*outer_dtheta
+                        local ew_inner_radius = connector_radius - 0.6*inputs.exit_wire_separation - inputs.exit_wire_diameter
                         local s2 = vertex_at({
                                 center = vector(inputs.pos.x, top_helix_y, inputs.pos.z),
-                                radius = connector_radius - inputs.exit_wire_separation/2 - inputs.exit_wire_diameter,
+                                radius = ew_inner_radius,
                                 angle = top_angle + math.pi,
                         })
                         local s3 = vertex_at({
                                 center = vector(inputs.pos.x, top_helix_y, inputs.pos.z),
-                                radius = connector_radius - inputs.exit_wire_separation/2 - inputs.exit_wire_diameter,
+                                radius = ew_inner_radius,
                                 angle = top_angle + math.pi - angle_diff,
                         })
                         local points = {
@@ -430,18 +431,24 @@ NodeLibrary:addNodes(
                         outer_wire_pos = vector(outer_wire_pos.x, inner_wire_pos.y, outer_wire_pos.z)
                         local centers_distance = V.length(outer_wire_post_center - inner_wire_post_center)
                         if centers_distance < inputs.exit_wire_separation then
-                            local p1 = inner_wire_post_center
-                            local v1 = vector(points[4].x, inner_wire_pos.y, points[4].z)
-                            local p2 = outer_wire_post_center
-                            local v2 = vertex_at({
+                            local pa = inner_wire_post_center
+                            local va = vector(points[4].x, inner_wire_pos.y, points[4].z)
+                            local pb = outer_wire_post_center
+                            local vb = vertex_at({
                                 center = vector(inputs.pos.x, inner_wire_pos.y, inputs.pos.z),
                                 radius = (inner_radius + outer_radius)/2,
                                 angle = outer_wire_start_angle,
                             })
-                            local v21len = V.length(v2-v1)
-                            local t = (inputs.exit_wire_separation - centers_distance) / (v21len - centers_distance)
-                            inner_wire_pos = p1 + t*(v1-p1)
-                            outer_wire_pos = p2 + t*(v2-p2)
+
+                            local d = inputs.exit_wire_separation
+                            local t1 = (math.pow(pa.x,2) - 2*pa.x*pb.x - pa.x*va.x + pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - pa.y*va.y + pa.y*vb.y + math.pow(pb.x,2) + pb.x*va.x - pb.x*vb.x + math.pow(pb.y,2) + pb.y*va.y - pb.y*vb.y - math.sqrt(math.pow(d,2)*math.pow(pa.x,2) - 2*math.pow(d,2)*pa.x*pb.x - 2*math.pow(d,2)*pa.x*va.x + 2*math.pow(d,2)*pa.x*vb.x + math.pow(d,2)*math.pow(pa.y,2) - 2*math.pow(d,2)*pa.y*pb.y - 2*math.pow(d,2)*pa.y*va.y + 2*math.pow(d,2)*pa.y*vb.y + math.pow(d,2)*math.pow(pb.x,2) + 2*math.pow(d,2)*pb.x*va.x - 2*math.pow(d,2)*pb.x*vb.x + math.pow(d,2)*math.pow(pb.y,2) + 2*math.pow(d,2)*pb.y*va.y - 2*math.pow(d,2)*pb.y*vb.y + math.pow(d,2)*math.pow(va.x,2) - 2*math.pow(d,2)*va.x*vb.x + math.pow(d,2)*math.pow(va.y,2) - 2*math.pow(d,2)*va.y*vb.y + math.pow(d,2)*math.pow(vb.x,2) + math.pow(d,2)*math.pow(vb.y,2) - math.pow(pa.x,2)*math.pow(va.y,2) + 2*math.pow(pa.x,2)*va.y*vb.y - math.pow(pa.x,2)*math.pow(vb.y,2) + 2*pa.x*pa.y*va.x*va.y - 2*pa.x*pa.y*va.x*vb.y - 2*pa.x*pa.y*va.y*vb.x + 2*pa.x*pa.y*vb.x*vb.y + 2*pa.x*pb.x*math.pow(va.y,2) - 4*pa.x*pb.x*va.y*vb.y + 2*pa.x*pb.x*math.pow(vb.y,2) - 2*pa.x*pb.y*va.x*va.y + 2*pa.x*pb.y*va.x*vb.y + 2*pa.x*pb.y*va.y*vb.x - 2*pa.x*pb.y*vb.x*vb.y - math.pow(pa.y,2)*math.pow(va.x,2) + 2*math.pow(pa.y,2)*va.x*vb.x - math.pow(pa.y,2)*math.pow(vb.x,2) - 2*pa.y*pb.x*va.x*va.y + 2*pa.y*pb.x*va.x*vb.y + 2*pa.y*pb.x*va.y*vb.x - 2*pa.y*pb.x*vb.x*vb.y + 2*pa.y*pb.y*math.pow(va.x,2) - 4*pa.y*pb.y*va.x*vb.x + 2*pa.y*pb.y*math.pow(vb.x,2) - math.pow(pb.x,2)*math.pow(va.y,2) + 2*math.pow(pb.x,2)*va.y*vb.y - math.pow(pb.x,2)*math.pow(vb.y,2) + 2*pb.x*pb.y*va.x*va.y - 2*pb.x*pb.y*va.x*vb.y - 2*pb.x*pb.y*va.y*vb.x + 2*pb.x*pb.y*vb.x*vb.y - math.pow(pb.y,2)*math.pow(va.x,2) + 2*math.pow(pb.y,2)*va.x*vb.x - math.pow(pb.y,2)*math.pow(vb.x,2)))/(math.pow(pa.x,2) - 2*pa.x*pb.x - 2*pa.x*va.x + 2*pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - 2*pa.y*va.y + 2*pa.y*vb.y + math.pow(pb.x,2) + 2*pb.x*va.x - 2*pb.x*vb.x + math.pow(pb.y,2) + 2*pb.y*va.y - 2*pb.y*vb.y + math.pow(va.x,2) - 2*va.x*vb.x + math.pow(va.y,2) - 2*va.y*vb.y + math.pow(vb.x,2) + math.pow(vb.y,2))
+
+                            local t2 = (math.pow(pa.x,2) - 2*pa.x*pb.x - pa.x*va.x + pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - pa.y*va.y + pa.y*vb.y + math.pow(pb.x,2) + pb.x*va.x - pb.x*vb.x + math.pow(pb.y,2) + pb.y*va.y - pb.y*vb.y + math.sqrt(math.pow(d,2)*math.pow(pa.x,2) - 2*math.pow(d,2)*pa.x*pb.x - 2*math.pow(d,2)*pa.x*va.x + 2*math.pow(d,2)*pa.x*vb.x + math.pow(d,2)*math.pow(pa.y,2) - 2*math.pow(d,2)*pa.y*pb.y - 2*math.pow(d,2)*pa.y*va.y + 2*math.pow(d,2)*pa.y*vb.y + math.pow(d,2)*math.pow(pb.x,2) + 2*math.pow(d,2)*pb.x*va.x - 2*math.pow(d,2)*pb.x*vb.x + math.pow(d,2)*math.pow(pb.y,2) + 2*math.pow(d,2)*pb.y*va.y - 2*math.pow(d,2)*pb.y*vb.y + math.pow(d,2)*math.pow(va.x,2) - 2*math.pow(d,2)*va.x*vb.x + math.pow(d,2)*math.pow(va.y,2) - 2*math.pow(d,2)*va.y*vb.y + math.pow(d,2)*math.pow(vb.x,2) + math.pow(d,2)*math.pow(vb.y,2) - math.pow(pa.x,2)*math.pow(va.y,2) + 2*math.pow(pa.x,2)*va.y*vb.y - math.pow(pa.x,2)*math.pow(vb.y,2) + 2*pa.x*pa.y*va.x*va.y - 2*pa.x*pa.y*va.x*vb.y - 2*pa.x*pa.y*va.y*vb.x + 2*pa.x*pa.y*vb.x*vb.y + 2*pa.x*pb.x*math.pow(va.y,2) - 4*pa.x*pb.x*va.y*vb.y + 2*pa.x*pb.x*math.pow(vb.y,2) - 2*pa.x*pb.y*va.x*va.y + 2*pa.x*pb.y*va.x*vb.y + 2*pa.x*pb.y*va.y*vb.x - 2*pa.x*pb.y*vb.x*vb.y - math.pow(pa.y,2)*math.pow(va.x,2) + 2*math.pow(pa.y,2)*va.x*vb.x - math.pow(pa.y,2)*math.pow(vb.x,2) - 2*pa.y*pb.x*va.x*va.y + 2*pa.y*pb.x*va.x*vb.y + 2*pa.y*pb.x*va.y*vb.x - 2*pa.y*pb.x*vb.x*vb.y + 2*pa.y*pb.y*math.pow(va.x,2) - 4*pa.y*pb.y*va.x*vb.x + 2*pa.y*pb.y*math.pow(vb.x,2) - math.pow(pb.x,2)*math.pow(va.y,2) + 2*math.pow(pb.x,2)*va.y*vb.y - math.pow(pb.x,2)*math.pow(vb.y,2) + 2*pb.x*pb.y*va.x*va.y - 2*pb.x*pb.y*va.x*vb.y - 2*pb.x*pb.y*va.y*vb.x + 2*pb.x*pb.y*vb.x*vb.y - math.pow(pb.y,2)*math.pow(va.x,2) + 2*math.pow(pb.y,2)*va.x*vb.x - math.pow(pb.y,2)*math.pow(vb.x,2)))/(math.pow(pa.x,2) - 2*pa.x*pb.x - 2*pa.x*va.x + 2*pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - 2*pa.y*va.y + 2*pa.y*vb.y + math.pow(pb.x,2) + 2*pb.x*va.x - 2*pb.x*vb.x + math.pow(pb.y,2) + 2*pb.y*va.y - 2*pb.y*vb.y + math.pow(va.x,2) - 2*va.x*vb.x + math.pow(va.y,2) - 2*va.y*vb.y + math.pow(vb.x,2) + math.pow(vb.y,2))
+
+                            local t = (t1 > t2) and t1 or t2
+
+                            inner_wire_pos = pa + t*(va-pa)
+                            outer_wire_pos = pb + t*(vb-pb)
                         end
 
                         local inner_exit_wire = make_exit_wire_cylinder({
