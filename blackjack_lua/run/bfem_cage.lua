@@ -4,6 +4,33 @@ local V = require("vector_math")
 
 local all_faces_selection = SelectionExpression.new("*")
 
+-- solve_for_t solve the provided function for t where 0<=t<=1.
+-- If the solution can't be found, t=2 or t=-1 are returned to signify an error.
+local solve_for_t = function(d, f)
+    local d1 = f(1)
+    if d > d1 then
+        return 2
+    end
+    local d0 = f(0)
+    if d < d0 then
+        return -1
+    end
+    local t = 0.5
+    local dt = 0.25
+    while true do
+        local err = f(t) - d
+        if math.abs(err) < 0.005 then
+            return t
+        end
+        if err > 0 then
+            t = t - dt
+        else
+            t = t + dt
+        end
+        dt = dt / 2
+    end
+end
+
 -- reverse reverses the order of the points, thereby inverting a face's normal.
 local reverse = function(points)
     local rev = {}
@@ -440,24 +467,12 @@ NodeLibrary:addNodes(
                                 angle = outer_wire_start_angle,
                             })
 
-                            -- sympy solver gives two solutions; take the greater (positive) one:
-                            -- vax, vay = symbols('vax vay')
-                            -- vbx, vby = symbols('vbx vby')
-                            -- pax, pay = symbols('pax pay')
-                            -- pbx, pby = symbols('pbx pby')
-                            -- t, d = symbols('t d')
-                            -- solution = solve((
-                            --     d*d - (((pax + t*(vax - pax)) - (pbx + t*(vbx - pbx)))**2 + ((pay + t*(vay - pay)) - (pby + t*(vby - pby)))**2)
-                            -- ), (t))
+                            local f1 = function(t) return pa + t*(va-pa) end
+                            local f2 = function(t) return pb + t*(vb-pb) end
                             local d = inputs.exit_wire_separation
-                            -- local t = (math.pow(pa.x,2) - 2*pa.x*pb.x - pa.x*va.x + pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - pa.y*va.y + pa.y*vb.y + math.pow(pb.x,2) + pb.x*va.x - pb.x*vb.x + math.pow(pb.y,2) + pb.y*va.y - pb.y*vb.y - math.sqrt(math.pow(d,2)*math.pow(pa.x,2) - 2*math.pow(d,2)*pa.x*pb.x - 2*math.pow(d,2)*pa.x*va.x + 2*math.pow(d,2)*pa.x*vb.x + math.pow(d,2)*math.pow(pa.y,2) - 2*math.pow(d,2)*pa.y*pb.y - 2*math.pow(d,2)*pa.y*va.y + 2*math.pow(d,2)*pa.y*vb.y + math.pow(d,2)*math.pow(pb.x,2) + 2*math.pow(d,2)*pb.x*va.x - 2*math.pow(d,2)*pb.x*vb.x + math.pow(d,2)*math.pow(pb.y,2) + 2*math.pow(d,2)*pb.y*va.y - 2*math.pow(d,2)*pb.y*vb.y + math.pow(d,2)*math.pow(va.x,2) - 2*math.pow(d,2)*va.x*vb.x + math.pow(d,2)*math.pow(va.y,2) - 2*math.pow(d,2)*va.y*vb.y + math.pow(d,2)*math.pow(vb.x,2) + math.pow(d,2)*math.pow(vb.y,2) - math.pow(pa.x,2)*math.pow(va.y,2) + 2*math.pow(pa.x,2)*va.y*vb.y - math.pow(pa.x,2)*math.pow(vb.y,2) + 2*pa.x*pa.y*va.x*va.y - 2*pa.x*pa.y*va.x*vb.y - 2*pa.x*pa.y*va.y*vb.x + 2*pa.x*pa.y*vb.x*vb.y + 2*pa.x*pb.x*math.pow(va.y,2) - 4*pa.x*pb.x*va.y*vb.y + 2*pa.x*pb.x*math.pow(vb.y,2) - 2*pa.x*pb.y*va.x*va.y + 2*pa.x*pb.y*va.x*vb.y + 2*pa.x*pb.y*va.y*vb.x - 2*pa.x*pb.y*vb.x*vb.y - math.pow(pa.y,2)*math.pow(va.x,2) + 2*math.pow(pa.y,2)*va.x*vb.x - math.pow(pa.y,2)*math.pow(vb.x,2) - 2*pa.y*pb.x*va.x*va.y + 2*pa.y*pb.x*va.x*vb.y + 2*pa.y*pb.x*va.y*vb.x - 2*pa.y*pb.x*vb.x*vb.y + 2*pa.y*pb.y*math.pow(va.x,2) - 4*pa.y*pb.y*va.x*vb.x + 2*pa.y*pb.y*math.pow(vb.x,2) - math.pow(pb.x,2)*math.pow(va.y,2) + 2*math.pow(pb.x,2)*va.y*vb.y - math.pow(pb.x,2)*math.pow(vb.y,2) + 2*pb.x*pb.y*va.x*va.y - 2*pb.x*pb.y*va.x*vb.y - 2*pb.x*pb.y*va.y*vb.x + 2*pb.x*pb.y*vb.x*vb.y - math.pow(pb.y,2)*math.pow(va.x,2) + 2*math.pow(pb.y,2)*va.x*vb.x - math.pow(pb.y,2)*math.pow(vb.x,2)))/(math.pow(pa.x,2) - 2*pa.x*pb.x - 2*pa.x*va.x + 2*pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - 2*pa.y*va.y + 2*pa.y*vb.y + math.pow(pb.x,2) + 2*pb.x*va.x - 2*pb.x*vb.x + math.pow(pb.y,2) + 2*pb.y*va.y - 2*pb.y*vb.y + math.pow(va.x,2) - 2*va.x*vb.x + math.pow(va.y,2) - 2*va.y*vb.y + math.pow(vb.x,2) + math.pow(vb.y,2))
-
-                            local t = (math.pow(pa.x,2) - 2*pa.x*pb.x - pa.x*va.x + pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - pa.y*va.y + pa.y*vb.y + math.pow(pb.x,2) + pb.x*va.x - pb.x*vb.x + math.pow(pb.y,2) + pb.y*va.y - pb.y*vb.y + math.sqrt(math.pow(d,2)*math.pow(pa.x,2) - 2*math.pow(d,2)*pa.x*pb.x - 2*math.pow(d,2)*pa.x*va.x + 2*math.pow(d,2)*pa.x*vb.x + math.pow(d,2)*math.pow(pa.y,2) - 2*math.pow(d,2)*pa.y*pb.y - 2*math.pow(d,2)*pa.y*va.y + 2*math.pow(d,2)*pa.y*vb.y + math.pow(d,2)*math.pow(pb.x,2) + 2*math.pow(d,2)*pb.x*va.x - 2*math.pow(d,2)*pb.x*vb.x + math.pow(d,2)*math.pow(pb.y,2) + 2*math.pow(d,2)*pb.y*va.y - 2*math.pow(d,2)*pb.y*vb.y + math.pow(d,2)*math.pow(va.x,2) - 2*math.pow(d,2)*va.x*vb.x + math.pow(d,2)*math.pow(va.y,2) - 2*math.pow(d,2)*va.y*vb.y + math.pow(d,2)*math.pow(vb.x,2) + math.pow(d,2)*math.pow(vb.y,2) - math.pow(pa.x,2)*math.pow(va.y,2) + 2*math.pow(pa.x,2)*va.y*vb.y - math.pow(pa.x,2)*math.pow(vb.y,2) + 2*pa.x*pa.y*va.x*va.y - 2*pa.x*pa.y*va.x*vb.y - 2*pa.x*pa.y*va.y*vb.x + 2*pa.x*pa.y*vb.x*vb.y + 2*pa.x*pb.x*math.pow(va.y,2) - 4*pa.x*pb.x*va.y*vb.y + 2*pa.x*pb.x*math.pow(vb.y,2) - 2*pa.x*pb.y*va.x*va.y + 2*pa.x*pb.y*va.x*vb.y + 2*pa.x*pb.y*va.y*vb.x - 2*pa.x*pb.y*vb.x*vb.y - math.pow(pa.y,2)*math.pow(va.x,2) + 2*math.pow(pa.y,2)*va.x*vb.x - math.pow(pa.y,2)*math.pow(vb.x,2) - 2*pa.y*pb.x*va.x*va.y + 2*pa.y*pb.x*va.x*vb.y + 2*pa.y*pb.x*va.y*vb.x - 2*pa.y*pb.x*vb.x*vb.y + 2*pa.y*pb.y*math.pow(va.x,2) - 4*pa.y*pb.y*va.x*vb.x + 2*pa.y*pb.y*math.pow(vb.x,2) - math.pow(pb.x,2)*math.pow(va.y,2) + 2*math.pow(pb.x,2)*va.y*vb.y - math.pow(pb.x,2)*math.pow(vb.y,2) + 2*pb.x*pb.y*va.x*va.y - 2*pb.x*pb.y*va.x*vb.y - 2*pb.x*pb.y*va.y*vb.x + 2*pb.x*pb.y*vb.x*vb.y - math.pow(pb.y,2)*math.pow(va.x,2) + 2*math.pow(pb.y,2)*va.x*vb.x - math.pow(pb.y,2)*math.pow(vb.x,2)))/(math.pow(pa.x,2) - 2*pa.x*pb.x - 2*pa.x*va.x + 2*pa.x*vb.x + math.pow(pa.y,2) - 2*pa.y*pb.y - 2*pa.y*va.y + 2*pa.y*vb.y + math.pow(pb.x,2) + 2*pb.x*va.x - 2*pb.x*vb.x + math.pow(pb.y,2) + 2*pb.y*va.y - 2*pb.y*vb.y + math.pow(va.x,2) - 2*va.x*vb.x + math.pow(va.y,2) - 2*va.y*vb.y + math.pow(vb.x,2) + math.pow(vb.y,2))
-
-                            -- local t = (t1 > t2) and t1 or t2
-
-                            inner_wire_pos = pa + t*(va-pa)
-                            outer_wire_pos = pb + t*(vb-pb)
+                            local t = solve_for_t(d, function(t) return V.length(f1(t)-f2(t)) end)
+                            inner_wire_pos = f1(t)
+                            outer_wire_pos = f2(t)
                         end
 
                         local inner_exit_wire = make_exit_wire_cylinder({
