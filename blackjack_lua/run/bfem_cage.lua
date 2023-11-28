@@ -590,7 +590,7 @@ NodeLibrary:addNodes(
                 P.v3("size", vector(10, 0, 10)),  -- wire_width/2 + wire_gap is added to size.
                 P.scalar("connector_length", {default=12, min=0, soft_max = 33}),
                 P.scalar("exit_wire_diameter", {default = 1, min = 0, soft_max = 10}),
-                P.scalar("exit_wire_separation", {default = 6, min = 0, soft_max = 10}),
+                P.scalar("exit_wire_separation", {default = 4, min = 0, soft_max = 10}),
                 P.scalar("front_thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("back_thickness", {default = 1, min = 0, soft_max = 10}),
                 P.scalar("radial_thickness", {default = 2, min = 0, soft_max = 10}),
