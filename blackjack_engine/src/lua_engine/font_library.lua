@@ -28,4 +28,9 @@ function FontLibrary:getFont(font_name)
     return self.fonts[font_name]
 end
 
+function FontLibrary:scriptPath()
+    local str = debug.getinfo(2, "S").source
+    return str .. ".data"
+end
+
 return FontLibrary

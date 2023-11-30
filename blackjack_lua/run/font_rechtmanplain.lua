@@ -10,7 +10,8 @@ F:addFonts(
             units_per_em = 1600,
             ascent = 1100,
             descent = -500,
-            glyphs = glyphs,
+            glyphs = nil,
+            data_file = F:scriptPath(),
         }
     }
 )
