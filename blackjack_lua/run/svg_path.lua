@@ -159,30 +159,30 @@ local generate_final_mesh = function(state)
     local transform_point = function(vert) return vert end
     if state.u_path == nil and state.v_path == nil then
         transform_point = function(vert)
-            local u = (vert.x - mbb.min.x) * max_width / mbb.diff.x  -- 0 to max_width
-            local v = (vert.y - mbb.min.y) * max_height / mbb.diff.y  -- 0 to max_height
+            local u = state.u_offset + state.u_scale * (vert.x - mbb.min.x) * max_width / mbb.diff.x  -- 0 to max_width
+            local v = state.v_offset + state.v_scale * (vert.y - mbb.min.y) * max_height / mbb.diff.y  -- 0 to max_height
             return state.pos + u * state.right + v * state.normal
         end
     elseif state.u_path == nil then
         local lerp_along_v_path = gen_lerp_along_curve_func(state.v_path)
         transform_point = function(vert)
-            local u = (vert.x - mbb.min.x) * max_width / mbb.diff.x  -- 0 to max_width
-            local v = (vert.y - mbb.min.y) / mbb.diff.y  -- 0 to 1
+            local u = state.u_offset + state.u_scale * (vert.x - mbb.min.x) * max_width / mbb.diff.x  -- 0 to max_width
+            local v = state.v_offset + state.v_scale * (vert.y - mbb.min.y) / mbb.diff.y  -- 0 to 1
             return u * state.right + lerp_along_v_path(v)
         end
     elseif state.v_path == nil then
         local lerp_along_u_path = gen_lerp_along_curve_func(state.u_path)
         transform_point = function(vert)
-            local u = (vert.x - mbb.min.x) / mbb.diff.x -- 0 to 1
-            local v = (vert.y - mbb.min.y) * max_height / mbb.diff.y  -- 0 to max_height
+            local u = state.u_offset + state.u_scale * (vert.x - mbb.min.x) / mbb.diff.x -- 0 to 1
+            local v = state.v_offset + state.v_scale * (vert.y - mbb.min.y) * max_height / mbb.diff.y  -- 0 to max_height
             return lerp_along_u_path(u) + v * state.normal
         end
     else
         local lerp_along_u_path = gen_lerp_along_curve_func(state.u_path)
         local lerp_along_v_path = gen_lerp_along_curve_func(state.v_path)
         transform_point = function(vert)
-            local u = (vert.x - mbb.min.x) / mbb.diff.x  -- 0 to 1
-            local v = (vert.y - mbb.min.y) / mbb.diff.y  -- 0 to 1
+            local u = state.u_offset + state.u_scale * (vert.x - mbb.min.x) / mbb.diff.x  -- 0 to 1
+            local v = state.v_offset + state.v_scale * (vert.y - mbb.min.y) / mbb.diff.y  -- 0 to 1
             return lerp_along_u_path(u) + lerp_along_v_path(v)
         end
     end
@@ -660,7 +660,11 @@ NodeLibrary:addNodes(
                     max_height = inputs.max_height,
                     preserve_aspect_ratio = inputs.preserve_aspect_ratio ~= 0,
                     u_path = inputs.u_path,
+                    u_offset = inputs.u_offset,
+                    u_scale = inputs.u_scale,
                     v_path = inputs.v_path,
+                    v_offset = inputs.v_offset,
+                    v_scale = inputs.v_scale,
                     out_mesh = nil,
                     last_cmd = nil,
                     last_p1 = nil,
@@ -707,7 +711,11 @@ NodeLibrary:addNodes(
                 P.scalar_int("segments", {default = 10, min = 0, soft_max = 360}),
                 -- both u_path and v_path override all the parameters above except "d" and "segments".
                 P.mesh("u_path"),
+                P.scalar("u_offset", {default = 0}),
+                P.scalar("u_scale", {default = 1}),
                 P.mesh("v_path"),
+                P.scalar("v_offset", {default = 0}),
+                P.scalar("v_scale", {default = 1}),
             },
             outputs = {P.mesh("out_mesh")},
             returns = "out_mesh"
