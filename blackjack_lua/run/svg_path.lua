@@ -64,23 +64,101 @@ end
 
 local cmd_close_path = function(state)
     if #state.points > 0 then
-        if state.mesh ~= nil then
-            Ops.merge(state.mesh, Primitives.polygon(state.points))
-        else
-            state.mesh = Primitives.polygon(state.points)
-        end
+        table.insert(state.paths, {
+                         primitive_func = Primitives.polygon,
+                         points = state.points,
+        })
         state.points = {}
     end
 end
 
 local terminate_path = function(state)
     if #state.points > 0 then
-        if state.mesh ~= nil then
-            Ops.merge(state.mesh, Primitives.line_from_points(state.points))
-        else
-            state.mesh = Primitives.line_from_points(state.points)
-        end
+        table.insert(state.paths, {
+                         primitive_func = Primitives.line_from_points,
+                         points = state.points,
+        })
         state.points = {}
+    end
+end
+
+local merge_mbb_vert = function(mbb, vert)
+    if vert.x < mbb.min.x then
+        mbb.min = vector(vert.x, mbb.min.y, mbb.min.z)
+    end
+    if vert.y < mbb.min.y then
+        mbb.min = vector(mbb.min.x, vert.y, mbb.min.z)
+    end
+    if vert.z < mbb.min.z then
+        mbb.min = vector(mbb.min.x, mbb.min.y, vert.z)
+    end
+    if vert.x > mbb.max.x then
+        mbb.max = vector(vert.x, mbb.max.y, mbb.max.z)
+    end
+    if vert.y > mbb.max.y then
+        mbb.max = vector(mbb.max.x, vert.y, mbb.max.z)
+    end
+    if vert.z > mbb.max.z then
+        mbb.max = vector(mbb.max.x, mbb.max.y, vert.z)
+    end
+end
+
+local calculate_svg_mbb = function(path)
+    local mbb = { min = vector(0,0,0), max = vector(0,0,0) }
+    for i, vert in pairs(path.points) do
+        if i == 1 then
+            mbb = { min = vert, max = vert }
+        else
+            merge_mbb_vert(mbb, vert)
+        end
+    end
+    path.mbb = mbb
+end
+
+local generate_final_mesh = function(state)
+    -- first pass - calculate each path's minimum SVG bounding box
+    local mbb = { min = vector(0,0,0), max = vector(0,0,0) }
+    for i, path in pairs(state.paths) do
+        calculate_svg_mbb(path)
+        if i == 1 then
+            mbb = path.mbb
+        else
+            merge_mbb_vert(mbb, path.mbb.min)
+            merge_mbb_vert(mbb, path.mbb.max)
+        end
+    end
+
+    if state.u_path == nil and state.v_path == nil and state.preserve_aspect_ratio then
+        local diff = mbb.max - mbb.min
+        if diff.x > 0 and diff.x > diff.y then
+            state.u_path = Primitives.line_from_points({vector(0,0,0), vector(state.max_width,0,0)})
+            local max_height = state.max_width * diff.y / diff.x
+            state.v_path = Primitives.line_from_points({vector(0,0,0), vector(0,max_height,0)})
+            print("wider than tall", state.max_width, max_height)
+        elseif diff.y > 0 then
+            state.v_path = Primitives.line_from_points({vector(0,0,0), vector(0,state.max_height,0)})
+            local max_width = state.max_height * diff.x / diff.y
+            state.u_path = Primitives.line_from_points({vector(0,0,0), vector(max_width,0,0)})
+            print("taller than wide", max_width, state.max_height)
+        else
+            return -- nothing to draw
+        end
+    else
+        if state.u_path == nil then
+            state.u_path = Primitives.line_from_points({vector(0,0,0), vector(state.max_width,0,0)})
+        end
+        if state.v_path == nil then
+            state.v_path = Primitives.line_from_points({vector(0,0,0), vector(0,state.max_height,0)})
+        end
+    end
+
+    -- second pass - generate output mesh
+    for i, path in pairs(state.paths) do
+        if i == 1 then
+            state.out_mesh = path.primitive_func(path.points)
+        else
+            Ops.merge(state.out_mesh, path.primitive_func(path.points))
+        end
     end
 end
 
@@ -95,7 +173,7 @@ local cmd_move_to_abs = function(state, params)
     end
     terminate_path(state)
     for i = 1, #params, 2 do
-        state.current_pos = state.pos + vector(params[i], params[i+1], 0) * state.size
+        state.current_pos = state.pos + vector(params[i], params[i+1], 0)
         insert_current_pos(state)
     end
     return state
@@ -108,7 +186,7 @@ local cmd_move_to = function(state, params)
     end
     terminate_path(state)
     for i = 1, #params, 2 do
-        state.current_pos = state.current_pos + vector(params[i], params[i+1], 0) * state.size
+        state.current_pos = state.current_pos + vector(params[i], params[i+1], 0)
         insert_current_pos(state)
     end
     return state
@@ -131,7 +209,7 @@ local cmd_line_to_abs = function(state, params)
     end
     for i = 1, #params, 2 do
         local p0 = state.current_pos
-        local p1 = state.pos + vector(params[i], params[i+1], 0) * state.size
+        local p1 = state.pos + vector(params[i], params[i+1], 0)
         state = line_to(state, p0, p1)
     end
     return state
@@ -144,7 +222,7 @@ local cmd_line_to = function(state, params)
     end
     for i = 1, #params, 2 do
         local p0 = state.current_pos
-        local p1 = state.current_pos + vector(params[i], params[i+1], 0) * state.size
+        local p1 = state.current_pos + vector(params[i], params[i+1], 0)
         state = line_to(state, p0, p1)
     end
     return state
@@ -157,7 +235,7 @@ local cmd_line_horizontal_abs = function(state, params)
     end
     for i = 1, #params do
         local p0 = state.current_pos
-        local p1 = state.current_pos*vector(0,1,0) + vector(params[i],0,0) * state.size
+        local p1 = state.current_pos*vector(0,1,0) + vector(params[i],0,0)
         state = line_to(state, p0, p1)
     end
     return state
@@ -170,7 +248,7 @@ local cmd_line_horizontal = function(state, params)
     end
     for i = 1, #params do
         local p0 = state.current_pos
-        local p1 = state.current_pos + vector(params[i],0,0) * state.size
+        local p1 = state.current_pos + vector(params[i],0,0)
         state = line_to(state, p0, p1)
     end
     return state
@@ -183,7 +261,7 @@ local cmd_line_vertical_abs = function(state, params)
     end
     for i = 1, #params do
         local p0 = state.current_pos
-        local p1 = state.current_pos*vector(1,0,0) + vector(0, params[i], 0) * state.size
+        local p1 = state.current_pos*vector(1,0,0) + vector(0, params[i], 0)
         state = line_to(state, p0, p1)
     end
     return state
@@ -196,7 +274,7 @@ local cmd_line_vertical = function(state, params)
     end
     for i = 1, #params do
         local p0 = state.current_pos
-        local p1 = state.current_pos + vector(0, params[i], 0) * state.size
+        local p1 = state.current_pos + vector(0, params[i], 0)
         state = line_to(state, p0, p1)
     end
     return state
@@ -226,9 +304,9 @@ local cmd_cubic_bezier_curve_abs = function(state, params)
     end
     for i = 1, #params, 6 do
         local p0 = state.current_pos
-        local p1 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
-        local p2 = state.pos + vector(params[i+2], params[i+3], 0) * state.size
-        local ep = state.pos + vector(params[i+4], params[i+5], 0) * state.size
+        local p1 = state.pos + vector(params[i  ], params[i+1], 0)
+        local p2 = state.pos + vector(params[i+2], params[i+3], 0)
+        local ep = state.pos + vector(params[i+4], params[i+5], 0)
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -243,9 +321,9 @@ local cmd_cubic_bezier_curve = function(state, params)
     end
     for i = 1, #params, 6 do
         local p0 = state.current_pos
-        local p1 = state.current_pos + vector(params[i  ], params[i+1], 0) * state.size
-        local p2 = state.current_pos + vector(params[i+2], params[i+3], 0) * state.size
-        local ep = state.current_pos + vector(params[i+4], params[i+5], 0) * state.size
+        local p1 = state.current_pos + vector(params[i  ], params[i+1], 0)
+        local p2 = state.current_pos + vector(params[i+2], params[i+3], 0)
+        local ep = state.current_pos + vector(params[i+4], params[i+5], 0)
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -264,8 +342,8 @@ local cmd_smooth_cubic_bezier_curve_abs = function(state, params)
         if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
             p1 = state.current_pos + state.last_p3 - state.last_p2
         end
-        local p2 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
-        local ep = state.pos + vector(params[i+2], params[i+3], 0) * state.size
+        local p2 = state.pos + vector(params[i  ], params[i+1], 0)
+        local ep = state.pos + vector(params[i+2], params[i+3], 0)
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -284,8 +362,8 @@ local cmd_smooth_cubic_bezier_curve = function(state, params)
         if state.last_cmd == "C" or state.last_cmd == "c" or state.last_cmd == "S" or state.last_cmd == "s" then
             p1 = state.current_pos + state.last_p3 - state.last_p2
         end
-        local p2 = state.current_pos + vector(params[i  ], params[i+1], 0) * state.size
-        local ep = state.current_pos + vector(params[i+2], params[i+3], 0) * state.size
+        local p2 = state.current_pos + vector(params[i  ], params[i+1], 0)
+        local ep = state.current_pos + vector(params[i+2], params[i+3], 0)
         state = cubic_to(state, p0, p1, p2, ep)
         state.last_p2 = p2
         state.last_p3 = ep
@@ -315,8 +393,8 @@ local cmd_quadratic_bezier_curve_abs = function(state, params)
     end
     for i = 1, #params, 4 do
         local p0 = state.current_pos
-        local p1 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
-        local p2 = state.pos + vector(params[i+2], params[i+3], 0) * state.size
+        local p1 = state.pos + vector(params[i  ], params[i+1], 0)
+        local p2 = state.pos + vector(params[i+2], params[i+3], 0)
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -331,8 +409,8 @@ local cmd_quadratic_bezier_curve = function(state, params)
     end
     for i = 1, #params, 4 do
         local p0 = state.current_pos
-        local p1 = state.current_pos + vector(params[i  ], params[i+1], 0) * state.size
-        local p2 = state.current_pos + vector(params[i+2], params[i+3], 0) * state.size
+        local p1 = state.current_pos + vector(params[i  ], params[i+1], 0)
+        local p2 = state.current_pos + vector(params[i+2], params[i+3], 0)
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -351,7 +429,7 @@ local cmd_smooth_quadratic_bezier_curve_abs = function(state, params)
         if state.last_cmd == "Q" or state.last_cmd == "q" or state.last_cmd == "T" or state.last_cmd == "t" then
             p1 = state.current_pos + state.last_p2 - state.last_p1
         end
-        local p2 = state.pos + vector(params[i  ], params[i+1], 0) * state.size
+        local p2 = state.pos + vector(params[i  ], params[i+1], 0)
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -370,7 +448,7 @@ local cmd_smooth_quadratic_bezier_curve = function(state, params)
         if state.last_cmd == "Q" or state.last_cmd == "q" or state.last_cmd == "T" or state.last_cmd == "t" then
             p1 = state.current_pos + state.last_p2 - state.last_p1
         end
-        local p2 = state.current_pos + vector(params[i  ], params[i+1], 0) * state.size
+        local p2 = state.current_pos + vector(params[i  ], params[i+1], 0)
         state = quadratic_to(state, p0, p1, p2)
         state.last_p1 = p1
         state.last_p2 = p2
@@ -455,7 +533,7 @@ local cmd_elliptic_arc_curve_abs = function(state, params)
         local large_arc_flag = params[i+3]
         local sweep_flag = params[i+4]
         local p0 = state.current_pos
-        local p1 = state.pos + vector(params[i+5], params[i+6], 0) * state.size
+        local p1 = state.pos + vector(params[i+5], params[i+6], 0)
         if p0 ~= p1 then
             state = elliptic_arc_to(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
         end
@@ -475,7 +553,7 @@ local cmd_elliptic_arc_curve = function(state, params)
         local large_arc_flag = params[i+3]
         local sweep_flag = params[i+4]
         local p0 = state.current_pos
-        local p1 = state.current_pos + vector(params[i+5], params[i+6], 0) * state.size
+        local p1 = state.current_pos + vector(params[i+5], params[i+6], 0)
         if p0 ~= p1 then
             state = elliptic_arc_to(state, rx, ry, angle, large_arc_flag, sweep_flag, p0, p1)
         end
@@ -542,13 +620,18 @@ NodeLibrary:addNodes(
                     pos = inputs.pos,
                     current_pos = inputs.pos,
                     segments = inputs.segments,
-                    size = inputs.size,
-                    points = {},
-                    mesh = nil,
+                    max_width = inputs.max_width,
+                    max_height = inputs.max_height,
+                    preserve_aspect_ratio = inputs.preserve_aspect_ratio ~= 0,
+                    u_path = inputs.u_path,
+                    v_path = inputs.v_path,
+                    out_mesh = nil,
                     last_cmd = nil,
                     last_p1 = nil,
                     last_p2 = nil,
                     last_p3 = nil,
+                    points = {}, -- used to build up the current path
+                    paths = {}, -- used to build up collection of paths
                 }
 
                 if inputs.segments < 1 or inputs.d == "" then
@@ -565,14 +648,16 @@ NodeLibrary:addNodes(
 
                 terminate_path(state)
 
-                if state.mesh == nil then
+                generate_final_mesh(state)
+
+                if state.out_mesh == nil then
                     return {
                         out_mesh = Primitives.line_from_points({})
                     }
                 end
 
                 return {
-                    out_mesh = state.mesh
+                    out_mesh = state.out_mesh
                 }
             end,
             inputs = {
@@ -580,8 +665,12 @@ NodeLibrary:addNodes(
                 P.v3("pos", vector(0, 0, 0)),
                 P.v3("normal", vector(0, 1, 0)),
                 P.v3("right", vector(1, 0, 0)),
-                P.v3("size", vector(1, 1, 1)),
+                P.scalar("max_width", {default = 10, min = 0, soft_max = 100}),
+                P.scalar("max_height", {default = 10, min = 0, soft_max = 100}),
+                P.scalar_int("preserve_aspect_ratio", {default = 1, min = 0, max = 1}),
                 P.scalar_int("segments", {default = 10, min = 0, soft_max = 360}),
+                P.mesh("u_path"),  -- u_path overrides the "max_width" and "preserve_aspect_ratio" settings.
+                P.mesh("v_path"),  -- v_path overrides the "max_height" and "preserve_aspect_ratio" settings.
             },
             outputs = {P.mesh("out_mesh")},
             returns = "out_mesh"
