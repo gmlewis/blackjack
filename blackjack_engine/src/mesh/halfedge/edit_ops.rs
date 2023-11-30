@@ -1615,6 +1615,78 @@ pub fn extrude_along_curve(
     HalfEdgeMesh::build_from_polygons(&positions, &polygons)
 }
 
+pub fn lerp_along_curve(
+    t: f32,
+    curve: &HalfEdgeMesh,
+) -> Result<crate::lua_engine::lua_stdlib::LVec3> {
+    use crate::lua_engine::lua_stdlib::LVec3;
+    let curve_conn = curve.read_connectivity();
+    let curve_pos = curve.read_positions();
+    let num_verts = curve_conn.num_vertices();
+
+    if num_verts < 2 {
+        return Ok(LVec3(glam::vec3(0.0, 0.0, 0.0)));
+    }
+
+    if t <= 0.0 {
+        if let Some((v, _)) = curve_conn.iter_vertices().next() {
+            return Ok(LVec3(curve_pos[v]));
+        }
+    }
+    if t >= 1.0 {
+        for (i, (v, _)) in curve_conn.iter_vertices().enumerate() {
+            if i == num_verts - 1 {
+                return Ok(LVec3(curve_pos[v]));
+            }
+        }
+    }
+
+    let mut segment_lengths = vec![];
+    let mut vert_idxes = vec![];
+    let mut total_length: f32 = 0.0;
+    for (i, (v, _)) in curve_conn.iter_vertices().enumerate() {
+        vert_idxes.push(v);
+        if i == 0 {
+            continue;
+        }
+        let length = (curve_pos[v] - curve_pos[vert_idxes[i - 1]]).length();
+        segment_lengths.push(length);
+        total_length += length;
+    }
+
+    if total_length == 0.0 {
+        return Ok(LVec3(glam::vec3(0.0, 0.0, 0.0)));
+    }
+
+    let mut t_vals = vec![];
+    let mut length: f32 = 0.0;
+    for (i, (_, _)) in curve_conn.iter_vertices().enumerate() {
+        if i == 0 {
+            t_vals.push(0.0);
+            continue;
+        }
+        length += segment_lengths[i - 1];
+        t_vals.push(length / total_length);
+    }
+
+    for (i, t_val) in t_vals.iter().enumerate() {
+        if *t_val < t {
+            continue;
+        }
+        let last_t = t_vals[i - 1];
+        let diff = *t_val - last_t;
+        if diff == 0.0 {
+            continue;
+        }
+        let frac = (t - last_t) / diff;
+        let last_v = curve_pos[vert_idxes[i - 1]];
+        let this_v = curve_pos[vert_idxes[i]];
+        return Ok(LVec3(last_v + frac * (this_v - last_v)));
+    }
+
+    Ok(LVec3(curve_pos[vert_idxes[num_verts - 1]]))
+}
+
 pub enum ResampleCurveDensity {
     /// The curve will be sampled as uniform-length segments, taking the real
     /// (estimated) length of the curve into account.
@@ -2282,6 +2354,13 @@ pub mod lua_fns {
         flip: usize,
     ) -> Result<HalfEdgeMesh> {
         super::extrude_along_curve(backbone, cross_section, flip)
+    }
+
+    /// Given a percentage `t` f32 (0 to 1) and a `curve` mesh (a polyline),
+    /// returns an LVec3 that is linearly interpolated across the polyline.
+    #[lua(under = "Ops")]
+    pub fn lerp_along_curve(t: f32, curve: &HalfEdgeMesh) -> Result<LVec3> {
+        super::lerp_along_curve(t, curve)
     }
 
     /// Applies a transformation to the given selection of mesh elements
