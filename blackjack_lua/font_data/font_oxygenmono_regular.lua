@@ -2847,15 +2847,6 @@ local glyphs = {
         xmax=1251,
         ymax=1595,
     },
-    uf6c3={
-        char="\uf6c3",
-        horiz_adv_x=0,
-        d="M810 -152L629 -655L483 -655L602 -152L810 -152Z",
-        xmin=483,
-        ymin=-655,
-        xmax=810,
-        ymax=-152,
-    },
     ufb01={
         char="ﬁ",
         horiz_adv_x=0,

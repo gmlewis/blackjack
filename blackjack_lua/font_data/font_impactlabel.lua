@@ -814,7 +814,7 @@ local glyphs = {
         ymax=898,
     },
     u00a0={
-        char="\u00a0",
+        char="\160",
         horiz_adv_x=604,
         d="M614 -324L-20 -324L-20 898L614 898L614 -324Z",
         xmin=-20,

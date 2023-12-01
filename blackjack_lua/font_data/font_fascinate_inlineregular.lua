@@ -958,7 +958,7 @@ local glyphs = {
         ymax=381,
     },
     u00ad={
-        char="\u00ad",
+        char="\173",
         horiz_adv_x=391,
         d="M49 175L49 292Q49 302 59 302L332 302Q342 302 342 292L342 175Q342 164 332 164L59 164Q49 164 49 175Z",
         xmin=49,
@@ -1901,15 +1901,6 @@ local glyphs = {
         ymin=369,
         xmax=744,
         ymax=701,
-    },
-    ue000={
-        char="\ue000",
-        horiz_adv_x=0,
-        d="M0 0L0 500L500 500L500 0L0 0Z",
-        xmin=0,
-        ymin=0,
-        xmax=500,
-        ymax=500,
     },
     ufb01={
         char="ﬁ",

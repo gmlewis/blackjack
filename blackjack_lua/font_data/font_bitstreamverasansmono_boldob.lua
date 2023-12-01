@@ -958,7 +958,7 @@ local glyphs = {
         ymax=899,
     },
     u00ad={
-        char="\u00ad",
+        char="\173",
         horiz_adv_x=0,
         d="M299 735L928 735L872 444L244 444L299 735Z",
         xmin=244,

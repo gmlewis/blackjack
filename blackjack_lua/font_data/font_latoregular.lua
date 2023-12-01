@@ -886,7 +886,7 @@ local glyphs = {
         ymax=1483,
     },
     u00ad={
-        char="\u00ad",
+        char="\173",
         horiz_adv_x=710,
         d="M102 537L102 691L608 691L608 537L102 537Z",
         xmin=102,
@@ -1028,15 +1028,6 @@ local glyphs = {
         ymin=861,
         xmax=1353,
         ymax=1467,
-    },
-    ue000={
-        char="\ue000",
-        horiz_adv_x=1035,
-        d="M0 1035L1035 1035L1035 0L0 0L0 1035Z",
-        xmin=0,
-        ymin=0,
-        xmax=1035,
-        ymax=1035,
     },
 }
 

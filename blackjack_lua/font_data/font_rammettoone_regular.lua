@@ -958,7 +958,7 @@ local glyphs = {
         ymax=911,
     },
     u00ad={
-        char="\u00ad",
+        char="\173",
         horiz_adv_x=1036,
         d="M61 911L975 911L975 614L61 614L61 911Z",
         xmin=61,
@@ -2909,15 +2909,6 @@ local glyphs = {
         ymin=469,
         xmax=2638,
         ymax=1599,
-    },
-    uf6c3={
-        char="\uf6c3",
-        horiz_adv_x=715,
-        d="M53 -764Q164 -764 210 -661Q229 -615 233 -557L53 -557L53 -135L662 -135L662 -539Q662 -893 327 -989Q212 -1022 53 -1022L53 -764Z",
-        xmin=53,
-        ymin=-1022,
-        xmax=662,
-        ymax=-135,
     },
     ufb90={
         char="ﮐ",
