@@ -61,18 +61,20 @@ local render = function(font, text)
     local y = 0
     while string.len(text) > 0 do
         local char = string.sub(text, 1, 1)
-        char = font.lookup[char]
-        if char == nil then
-            x = x + glyph.horiz_adv_x
+        local char_key = font.lookup[char]
+        if char == "\n" then
+            x = 0
+            y = y - font.units_per_em + font.descent
+        elseif char_key == nil then
+            x = x + font.horiz_adv_x
         else
-            local glyph = font.glyphs[char]
+            local glyph = font.glyphs[char_key]
             if glyph ~= nil then
                 d = d .. translate_glyph(x, y, glyph.d)
-                if char == "\n" then
-                    x = 0
-                    y = y - glyph.units_per_em + glyph.descent
-                else
+                if glyph.horiz_adv_x > 0 then
                     x = x + glyph.horiz_adv_x
+                else
+                    x = x + font.horiz_adv_x
                 end
             else
                 x = x + font.horiz_adv_x

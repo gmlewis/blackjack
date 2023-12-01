@@ -1,0 +1,250 @@
+// BLACKJACK_VERSION_HEADER 0 1 0
+(
+    nodes: [
+        (
+            op_name: "SVGPath",
+            return_value: Some("out_mesh"),
+            inputs: [
+                (
+                    name: "d",
+                    data_type: "BJK_STRING",
+                    kind: Conection(
+                        node_idx: 2,
+                        param_name: "d",
+                    ),
+                ),
+                (
+                    name: "pos",
+                    data_type: "BJK_VECTOR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "normal",
+                    data_type: "BJK_VECTOR",
+                    kind: Conection(
+                        node_idx: 1,
+                        param_name: "normal",
+                    ),
+                ),
+                (
+                    name: "right",
+                    data_type: "BJK_VECTOR",
+                    kind: Conection(
+                        node_idx: 1,
+                        param_name: "right",
+                    ),
+                ),
+                (
+                    name: "max_width",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "max_height",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "preserve_aspect_ratio",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "segments",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "u_path",
+                    data_type: "BJK_MESH",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "u_offset",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "u_scale",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "v_path",
+                    data_type: "BJK_MESH",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "v_offset",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "v_scale",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "out_mesh",
+                    data_type: "BJK_MESH",
+                ),
+            ],
+        ),
+        (
+            op_name: "EulerAngles",
+            return_value: Some("forward"),
+            inputs: [
+                (
+                    name: "pitch",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "yaw",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "forward",
+                    data_type: "BJK_VECTOR",
+                ),
+                (
+                    name: "normal",
+                    data_type: "BJK_VECTOR",
+                ),
+                (
+                    name: "right",
+                    data_type: "BJK_VECTOR",
+                ),
+            ],
+        ),
+        (
+            op_name: "SVGFont",
+            return_value: Some("d"),
+            inputs: [
+                (
+                    name: "text",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "font",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "d",
+                    data_type: "BJK_STRING",
+                ),
+            ],
+        ),
+    ],
+    default_node: Some(0),
+    ui_data: Some((
+        node_positions: [
+            (427.21582, 128.91124),
+            (162.89595, 351.52768),
+            (79.6478, 103.43765),
+        ],
+        node_order: [
+            1,
+            0,
+            2,
+        ],
+        pan: (328.66013, -100.36405),
+        zoom: 0.7082311,
+        locked_gizmo_nodes: [],
+    )),
+    external_parameters: Some((
+        param_values: {
+            (
+                node_idx: 1,
+                param_name: "yaw",
+            ): Scalar(0.00000025182962),
+            (
+                node_idx: 0,
+                param_name: "max_width",
+            ): Scalar(10.0),
+            (
+                node_idx: 0,
+                param_name: "segments",
+            ): Scalar(3.0),
+            (
+                node_idx: 0,
+                param_name: "v_scale",
+            ): Scalar(1.0),
+            (
+                node_idx: 0,
+                param_name: "v_offset",
+            ): Scalar(0.0),
+            (
+                node_idx: 1,
+                param_name: "pitch",
+            ): Scalar(0.0),
+            (
+                node_idx: 2,
+                param_name: "font",
+            ): String("aaarghnormal"),
+            (
+                node_idx: 0,
+                param_name: "pos",
+            ): Vector((0.0, 0.0, 0.0)),
+            (
+                node_idx: 0,
+                param_name: "max_height",
+            ): Scalar(10.0),
+            (
+                node_idx: 0,
+                param_name: "u_offset",
+            ): Scalar(0.0),
+            (
+                node_idx: 0,
+                param_name: "preserve_aspect_ratio",
+            ): Scalar(1.0),
+            (
+                node_idx: 0,
+                param_name: "u_scale",
+            ): Scalar(1.0),
+            (
+                node_idx: 2,
+                param_name: "text",
+            ): String("Hark! the herald Angels sing,\nGlory to the new-born King,\nPeace on earth and mercy mild,\nGod and sinner reconcil\'d.\nHark! the herald Angels sing,\nGlory to the new-born King."),
+        },
+    )),
+)
