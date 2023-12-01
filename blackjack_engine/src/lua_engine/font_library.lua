@@ -30,6 +30,11 @@ function FontLibrary:getFont(font_name)
     if font.glyphs == nil then
         require("../font_data/font_" .. font_name)
         font = self.fonts[font_name]  -- reload the font data
+        local lookup = {}
+        for k, v in pairs(font.glyphs) do
+            lookup[v.char] = k
+        end
+        font.lookup = lookup
     end
     return font
 end
