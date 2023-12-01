@@ -21,7 +21,7 @@ end
 local parse_parameters = function(d)
     local params = {}
     while string.len(d) > 0 do
-        local _, j, m = string.find(d, "^%s*([%d%.%-]+)%s*,*")
+        local _, j, m = string.find(d, "^%s*([%-]?[%d%.]+)%s*,*")
         if m ~= nil then
             table.insert(params, 0+m)  -- coerce m to a number.
             d = string.sub(d, j+1)
