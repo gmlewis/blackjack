@@ -1029,6 +1029,15 @@ local glyphs = {
         xmax=1628,
         ymax=1343,
     },
+    ue000={
+        char="\000\224",
+        horiz_adv_x=975,
+        d="M0 975L975 975L975 0L0 0L0 975Z",
+        xmin=0,
+        ymin=0,
+        xmax=975,
+        ymax=975,
+    },
 }
 
 F:addFonts(

@@ -2073,6 +2073,15 @@ local glyphs = {
         xmax=576,
         ymax=712,
     },
+    uf6c3={
+        char="\195\246",
+        horiz_adv_x=242,
+        d="M127 -50L202 -71C190 -158 146 -222 82 -262L40 -238C85 -181 112 -125 127 -50Z",
+        xmin=40,
+        ymin=-262,
+        xmax=202,
+        ymax=-50,
+    },
 }
 
 F:addFonts(

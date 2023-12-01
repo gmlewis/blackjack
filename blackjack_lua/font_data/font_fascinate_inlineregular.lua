@@ -1902,6 +1902,15 @@ local glyphs = {
         xmax=744,
         ymax=701,
     },
+    ue000={
+        char="\000\224",
+        horiz_adv_x=0,
+        d="M0 0L0 500L500 500L500 0L0 0Z",
+        xmin=0,
+        ymin=0,
+        xmax=500,
+        ymax=500,
+    },
     ufb01={
         char="ﬁ",
         horiz_adv_x=948,
