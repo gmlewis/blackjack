@@ -11,7 +11,6 @@ F:addFonts(
             ascent = 736,
             descent = -264,
             glyphs = nil,
-            data_file = F:scriptPath(),
         }
     }
 )
