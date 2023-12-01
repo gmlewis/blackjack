@@ -23,7 +23,7 @@ use mlua::Lua;
 use notify::{DebouncedEvent, Watcher};
 use slotmap::SecondaryMap;
 
-use self::lua_stdlib::{load_node_definitions, LuaFileIo, StdLuaFileIo};
+use self::lua_stdlib::{load_font_definitions, load_node_definitions, LuaFileIo, StdLuaFileIo};
 
 pub mod lua_stdlib;
 
@@ -104,6 +104,7 @@ impl LuaRuntime {
         let lua = Lua::new();
         let lua_io = Arc::new(lua_io);
         lua_stdlib::load_lua_bindings(&lua, lua_io.clone())?;
+        load_font_definitions(&lua, lua_io.as_ref())?;
         let node_definitions = NodeDefinitions::new(load_node_definitions(&lua, lua_io.as_ref())?);
 
         Ok(LuaRuntime {

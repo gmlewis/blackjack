@@ -104,7 +104,7 @@ local merge_mbb_vert = function(mbb, vert)
 end
 
 local calculate_svg_mbb = function(path)
-    local mbb = { min = vector(0,0,0), max = vector(0,0,0) }
+    local mbb = nil
     for i, vert in pairs(path.points) do
         if i == 1 then
             mbb = { min = vert, max = vert }
@@ -131,7 +131,7 @@ end
 
 local generate_final_mesh = function(state)
     -- first pass - calculate each path's minimum SVG bounding box
-    local mbb = { min = vector(0,0,0), max = vector(0,0,0) }
+    local mbb = nil
     for i, path in pairs(state.paths) do
         calculate_svg_mbb(path)
         if i == 1 then
@@ -140,6 +140,10 @@ local generate_final_mesh = function(state)
             merge_mbb_vert(mbb, path.mbb.min)
             merge_mbb_vert(mbb, path.mbb.max)
         end
+    end
+
+    if mbb == nil or mbb.min == mbb.max then
+        return
     end
 
     mbb.diff = mbb.max - mbb.min

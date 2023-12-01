@@ -45,6 +45,14 @@ pub trait LuaFileIo {
     /// which in practice means they should be absolute paths.
     fn find_run_files(&self) -> Box<dyn Iterator<Item = String>>;
 
+    /// Returns an iterator over the paths of all the blackjack font
+    /// scripts on the fonts folder.
+    ///
+    /// The calling code does not care about the format of the returned paths.
+    /// The values should be valid to call the `load_file_absolute` function,
+    /// which in practice means they should be absolute paths.
+    fn find_font_files(&self) -> Box<dyn Iterator<Item = String>>;
+
     /// Returns a [`LuaSourceFile`] with the contents of the file at a given
     /// `path`. The path will be treated as absolute.
     fn load_file_absolute(&self, path: &str) -> anyhow::Result<LuaSourceFile>;
@@ -66,6 +74,24 @@ impl LuaFileIo for StdLuaFileIo {
 
     fn find_run_files(&self) -> Box<dyn Iterator<Item = String>> {
         let run_path = PathBuf::from(&self.base_folder).join("run");
+        Box::new(
+            walkdir::WalkDir::new(run_path)
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.file_type().is_file()
+                        && e.file_name()
+                            .to_str()
+                            .map(|s| s.ends_with(".lua"))
+                            .unwrap_or(false)
+                })
+                .filter_map(|e| e.path().to_str().map(|x| x.to_owned())),
+        )
+    }
+
+    fn find_font_files(&self) -> Box<dyn Iterator<Item = String>> {
+        let run_path = PathBuf::from(&self.base_folder).join("fonts");
         Box::new(
             walkdir::WalkDir::new(run_path)
                 .follow_links(true)
@@ -117,4 +143,15 @@ pub fn load_node_definitions(
         .eval::<mlua::Table>()?
         .get::<_, mlua::Table>("nodes")?;
     NodeDefinition::load_nodes_from_table(table)
+}
+
+/// Scans and runs all font files inside $BLACKJACK_LUA/run. Then, parses every
+/// registered font.
+pub fn load_font_definitions(lua: &mlua::Lua, lua_io: &dyn LuaFileIo) -> anyhow::Result<()> {
+    for path in lua_io.find_font_files() {
+        let file = lua_io.load_file_absolute(&path)?;
+        lua.load(&file).exec()?;
+    }
+
+    Ok(())
 }
