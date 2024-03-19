@@ -535,6 +535,12 @@ NodeLibrary:addNodes(
                     end
                 end
 
+                -- if inputs.add_inner_support == 0 then
+                --     return {
+                --         out_mesh = out_mesh
+                --     }
+                -- end
+
                 -- pos = inputs.pos - vector(0, inputs.wire_width/2 + inputs.tolerance, 0),
                 local shaft_pos = inputs.pos - vector(0, inputs.wire_width/2 + inputs.front_thickness, 0)
                 local shaft_radius = inputs.inner_radius - inputs.tolerance
@@ -601,6 +607,7 @@ NodeLibrary:addNodes(
                 P.scalar("wire_width", {default = 1, min = 0, soft_max = 10}),
                 P.scalar_int("segments", {default = 36, min = 1, soft_max = 360}),
                 P.scalar_int("num_pairs", {default = 3, min = 1, soft_max = 33}),
+                -- P.scalar_int("add_inner_support", {default = 1, min = 0}),
             },
             outputs = {P.mesh("out_mesh")},
             returns = "out_mesh"
