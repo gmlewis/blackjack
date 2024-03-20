@@ -144,7 +144,6 @@ local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_too
    local tmp2 = tpt2-inputs.pos
    local gap_arc_length = POINTS_ON_CIRCLE * gap_delta
    local end_theta = math.atan2(tmp2.z, tmp2.x) - gap_arc_length
-   print("tooth_idx", tooth_idx, tmp1.x, tmp1.z, "start_theta", start_theta, "end_theta", end_theta)
 
    for j = 0, POINTS_ON_CIRCLE do
       local t = j / POINTS_ON_CIRCLE -- t = 0..1
@@ -152,6 +151,15 @@ local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_too
       table.insert(top_face, inputs.pos + top + rotate_point(vector(r, 0, 0), -theta1))
       local theta2 = start_theta + t * (end_theta - start_theta)
       table.insert(bot_face, inputs.pos + rotate_point(vector(r, 0, 0), -theta2))
+   end
+
+   for j = 0, POINTS_ON_CIRCLE-1 do
+      -- add a new quad face for the inner circular hole
+      local v1 = top_face[#top_face-POINTS_ON_CIRCLE+j+1]
+      local v2 = top_face[#top_face-POINTS_ON_CIRCLE+j]
+      local v3 = bot_face[#bot_face-j]
+      local v4 = bot_face[#bot_face-j-1]
+      table.insert(faces, {v1, v2, v3, v4})
    end
 
    table.insert(faces, top_face)
@@ -240,6 +248,15 @@ NodeLibrary:addNodes(
             label = "Herringbone Gear",
             op = function(inputs)
                 local involute, base_radius, pitch_radius, root_radius, outer_radius = generate_involute_verts(inputs)
+                if inputs.hole_radius >= root_radius then
+                   return {
+                      out_mesh = {},
+                      base_radius = base_radius,
+                      pitch_radius = pitch_radius,
+                      outer_radius = outer_radius,
+                      root_radius = root_radius
+                   }
+                end
                 local out_mesh = generate_teeth(involute, root_radius, outer_radius, inputs)
                 return {
                     out_mesh = out_mesh,
