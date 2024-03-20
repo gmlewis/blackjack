@@ -111,14 +111,14 @@ local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, 
    local top_face = { inputs.pos + top, tpt1, tpt2 }
    local bpt1 = bottom_tooth[1]
    local bpt2 = bottom_tooth[#bottom_tooth]
-   local bot_face = { inputs.pos, bpt2, bpt1 }
+   local bot_face = { inputs.pos, bpt1, bpt2 }
    for j = 0, POINTS_ON_CIRCLE-1 do
       local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
       table.insert(top_face, tnext2)
       tpt2 = tnext2
-      local bnext1 = inputs.pos + rotate_point(bpt1-inputs.pos, gap_delta)
-      table.insert(bot_face, bnext1)
-      bpt1 = bnext1
+      local bnext2 = inputs.pos + rotate_point(bpt2-inputs.pos, -gap_delta)
+      table.insert(bot_face, bnext2)
+      bpt2 = bnext2
    end
    table.insert(faces, top_face)
    table.insert(faces, bot_face)
