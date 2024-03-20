@@ -151,7 +151,7 @@ local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_too
       local theta1 = start_theta + (1 - t) * (end_theta - start_theta)
       table.insert(top_face, inputs.pos + top + rotate_point(vector(r, 0, 0), -theta1))
       local theta2 = start_theta + t * (end_theta - start_theta)
-      table.insert(bot_face, inputs.pos + rotate_point(vector(r, 0, 0), -theta2 - gap_arc_length))
+      table.insert(bot_face, inputs.pos + rotate_point(vector(r, 0, 0), -theta2))
    end
 
    table.insert(faces, top_face)
