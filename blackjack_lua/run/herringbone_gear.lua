@@ -108,10 +108,39 @@ local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, 
    local top = vector(0, inputs.gear_length, 0)
    local tpt1 = top_tooth[1]
    local tpt2 = top_tooth[#top_tooth]
-   table.insert(faces, { inputs.pos + top, tpt1, tpt2 })
+   local top_face = { inputs.pos + top, tpt1, tpt2 }
    local bpt1 = bottom_tooth[1]
    local bpt2 = bottom_tooth[#bottom_tooth]
-   table.insert(faces, { inputs.pos, bpt1, bpt2 })
+   local bot_face = { inputs.pos, bpt2, bpt1 }
+   for j = 0, POINTS_ON_CIRCLE-1 do
+      local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
+      table.insert(top_face, tnext2)
+      tpt2 = tnext2
+      local bnext1 = inputs.pos + rotate_point(bpt1-inputs.pos, gap_delta)
+      table.insert(bot_face, bnext1)
+      bpt1 = bnext1
+   end
+   table.insert(faces, top_face)
+   table.insert(faces, bot_face)
+end
+
+local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local top = vector(0, inputs.gear_length, 0)
+   local tpt1 = top_tooth[1]
+   local tpt2 = top_tooth[#top_tooth]
+   local top_face = { tpt1, tpt2 }
+   local bpt1 = bottom_tooth[1]
+   local bpt2 = bottom_tooth[#bottom_tooth]
+   local bot_face = { bpt1, bpt2 }
+
+   local r = inputs.hole_radius
+   local top_tmp = tpt2-inputs.pos
+   local top_theta = math.atan2(top_tmp.z, top_tmp.x)
+   -- the following are identical to the top versions:
+   -- local bot_tmp = bpt1-inputs.pos
+   -- local bot_theta = math.atan2(bot_tmp.z, bot_tmp.x)
+   print("tooth_idx", tooth_idx, "r", r, "top_theta", top_theta) -- , "bot_theta", bot_theta)
+
    for j = 0, POINTS_ON_CIRCLE-1 do
       local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
       table.insert(faces, { inputs.pos + top, tpt2, tnext2 })
@@ -120,6 +149,8 @@ local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, 
       table.insert(faces, { inputs.pos, bnext1, bpt1 })
       bpt1 = bnext1
    end
+   table.insert(faces, top_face)
+   table.insert(faces, bot_face)
 end
 
 local hole_generator = {
@@ -127,7 +158,7 @@ local hole_generator = {
    Hollow=function() end,
    Squared=function() end,
    Hexagonal=function() end,
-   Circular=function() end,
+   Circular=hole_generator_circular,
    Keyway=function() end,
 }
 
