@@ -106,12 +106,20 @@ end
 
 local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
    local top = vector(0, inputs.gear_length, 0)
-   local pt1 = top_tooth[1]
-   local pt2 = top_tooth[#top_tooth]
-   table.insert(faces, { inputs.pos + top, pt1, pt2 })
-   pt1 = bottom_tooth[1]
-   pt2 = bottom_tooth[#bottom_tooth]
-   table.insert(faces, { inputs.pos, pt1, pt2 })
+   local tpt1 = top_tooth[1]
+   local tpt2 = top_tooth[#top_tooth]
+   table.insert(faces, { inputs.pos + top, tpt1, tpt2 })
+   local bpt1 = bottom_tooth[1]
+   local bpt2 = bottom_tooth[#bottom_tooth]
+   table.insert(faces, { inputs.pos, bpt1, bpt2 })
+   for j = 0, POINTS_ON_CIRCLE-1 do
+      local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
+      table.insert(faces, { inputs.pos + top, tpt2, tnext2 })
+      tpt2 = tnext2
+      local bnext1 = inputs.pos + rotate_point(bpt1-inputs.pos, gap_delta)
+      table.insert(faces, { inputs.pos, bnext1, bpt1 })
+      bpt1 = bnext1
+   end
 end
 
 local hole_generator = {
