@@ -104,23 +104,24 @@ local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, 
     end
 end
 
-local generate_top_and_bottom = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
-   if inputs.hole_type == "Hollow" then
-      return
-   end
-
-   if inputs.hole_type == "None" then
-      local top = vector(0, inputs.gear_length, 0)
-      local pt1 = top_tooth[1]
-      local pt2 = top_tooth[#top_tooth]
-      table.insert(faces, { inputs.pos + top, pt1, pt2 })
-      pt1 = bottom_tooth[1]
-      pt2 = bottom_tooth[#bottom_tooth]
-      table.insert(faces, { inputs.pos, pt1, pt2 })
-      return
-   end
-
+local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local top = vector(0, inputs.gear_length, 0)
+   local pt1 = top_tooth[1]
+   local pt2 = top_tooth[#top_tooth]
+   table.insert(faces, { inputs.pos + top, pt1, pt2 })
+   pt1 = bottom_tooth[1]
+   pt2 = bottom_tooth[#bottom_tooth]
+   table.insert(faces, { inputs.pos, pt1, pt2 })
 end
+
+local hole_generator = {
+   None=hole_generator_none,
+   Hollow=function() end,
+   Squared=function() end,
+   Hexagonal=function() end,
+   Circular=function() end,
+   Keyway=function() end,
+}
 
 local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local pos = inputs.pos
@@ -136,6 +137,8 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local involute_arc_angle = math.abs(involute_end_angle - involute_start_angle)
     local gap_arc_angle = 2 * math.pi / inputs.num_teeth - involute_arc_angle
     local gap_delta = gap_arc_angle / POINTS_ON_CIRCLE
+
+    local hole_func = hole_generator[inputs.hole_type]
 
     local last_side_verts = {}
     local faces = {}
@@ -176,7 +179,7 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
         end
 
         -- create the top and bottom caps
-        generate_top_and_bottom(faces, i, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+        hole_func(faces, i, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
 
     end
     return Primitives.mesh_from_faces(faces)
