@@ -12,7 +12,7 @@ local rotate_point = function(pnt, theta)
     local s = math.sin(theta)
     local x = c * pnt.x + s * pnt.z
     local z = -s * pnt.x + c * pnt.z
-    return vector(x, 0, z)
+    return vector(x, pnt.y, z)
 end
 
 local involute_xy = function(radius, theta)
@@ -34,7 +34,7 @@ local generate_involute_verts = function(inputs)
     local base_radius = pitch_radius * math.cos(pressure_angle)
     local root_radius = pitch_radius - 1.25 * inputs.module
     local outer_radius = pitch_radius + inputs.module
-    local t = math.pi * inputs.module / 2
+    -- local t = math.pi * inputs.module / 2
 
     -- work out the angular extent of the tooth on the base radius
     local backlash = (0.25 * math.pi * math.cos(pressure_angle)) / (inputs.num_teeth * inputs.module)
@@ -51,7 +51,8 @@ local generate_involute_verts = function(inputs)
     local involute = {}
     -- start of tooth
     if (root_radius < base_radius) then
-        table.insert(involute, rotate_point(vector(root_radius, 0, 0), center_angle))
+       local pt = rotate_point(vector(root_radius, 0, 0), center_angle)
+       table.insert(involute, pt)
     end
 
     -- lower tooth face
@@ -78,15 +79,60 @@ local generate_involute_verts = function(inputs)
        table.insert(involute, vector(pt.x, 0, -pt.z))
     end
 
-    return involute, base_radius, pitch_radius, outer_radius
+    -- -- create arc across inner tooth edge
+    -- local tooth_end = involute[#involute]
+    -- local tooth_end_angle = math.atan2(tooth_end.z, tooth_end.x)
+    -- print("tooth_end_angle", tooth_end_angle, "tooth_end", tooth_end.x, tooth_end.z)
+    -- for i = 1, POINTS_ON_CIRCLE do
+    --    local phi = tooth_end_angle*(1 + i/POINTS_ON_CIRCLE)
+    --    local pt = rotate_point(vector(root_radius, 0, 0), phi)
+    --    print("i",i,"phi",phi,"pt", pt.x, -pt.z)
+    --    table.insert(involute, vector(pt.x, 0, -pt.z))
+    -- end
+
+    return involute, base_radius, pitch_radius, root_radius, outer_radius
 end
 
-local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, first_iteration, pos, theta, direction, pt)
+local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, first_iteration, pos, theta, direction, pt, root_radius)
     for segment = 0, 2 * VERTICAL_SEGMENTS_IN_HALF_HELIX do
         local y = gear_length * segment / (2 * VERTICAL_SEGMENTS_IN_HALF_HELIX) -- 0..top (max at midpoint)
         local helix_rotation = max_helix_rotation - math.abs(max_helix_rotation * (-1 + segment/VERTICAL_SEGMENTS_IN_HALF_HELIX))
         local vert = pos + vector(0, y, 0) + rotate_point(pt, theta + direction*helix_rotation)
         table.insert(new_side_verts, vert)
+
+        if segment > 0 and first_iteration and #last_side_verts > 0 then
+           table.insert(faces, {
+              last_side_verts[segment], -- 1-indexed
+              new_side_verts[segment],
+              new_side_verts[segment + 1],
+           })
+           table.insert(faces, {
+              last_side_verts[segment],
+              new_side_verts[segment + 1],
+              last_side_verts[segment + 1],
+           })
+           -- create arc at root_radius across inner tooth edge
+           -- local last_pt1 = last_side_verts[segment]
+           -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
+           -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
+           -- local diff1 = end1 - start1
+           -- local last_pt2 = last_side_verts[segment + 1]
+           -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
+           -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
+           -- local diff2 = end2 - start2
+           -- for i = 1, POINTS_ON_CIRCLE do
+           --    local t = i / POINTS_ON_CIRCLE
+           --    local phi1 = start1 + t * diff1
+           --    local pt1 = rotate_point(vector(root_radius, last_pt1.y, 0), phi1)
+           --    local phi2 = start2 + t * diff2
+           --    local pt2 = rotate_point(vector(root_radius, last_pt2.y, 0), phi2)
+           --    table.insert(faces, { last_pt1, pt1, pt2 })
+           --    table.insert(faces, { last_pt1, pt2, last_pt2 })
+           --    last_pt1 = pt1
+           --    last_pt2 = pt2
+           -- end
+        end
+
         if segment > 0 and not first_iteration then
            -- create two faces
            table.insert(faces, {
@@ -103,7 +149,7 @@ local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, 
     end
 end
 
-local generate_teeth = function(involute, outer_radius, inputs)
+local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local pos = inputs.pos
     local gear_length = inputs.gear_length
     local helix_length = gear_length / 2
@@ -127,7 +173,7 @@ local generate_teeth = function(involute, outer_radius, inputs)
             table.insert(bottom_tooth, pos + rotate_point(pt, theta))
             -- generate one side of the tooth
             local new_side_verts = {}
-            generate_side_of_tooth(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, j==1, pos, theta, direction, rev_pt)
+            generate_side_of_tooth(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, j==1, pos, theta, direction, rev_pt, root_radius)
             last_side_verts = new_side_verts
         end
 
@@ -147,13 +193,14 @@ NodeLibrary:addNodes(
         HerringboneGear = {
             label = "Herringbone Gear",
             op = function(inputs)
-                local involute, base_radius, pitch_radius, outer_radius = generate_involute_verts(inputs)
-                local out_mesh = generate_teeth(involute, outer_radius, inputs)
+                local involute, base_radius, pitch_radius, root_radius, outer_radius = generate_involute_verts(inputs)
+                local out_mesh = generate_teeth(involute, root_radius, outer_radius, inputs)
                 return {
                     out_mesh = out_mesh,
                     base_radius = base_radius,
                     pitch_radius = pitch_radius,
-                    outer_radius = outer_radius
+                    outer_radius = outer_radius,
+                    root_radius = root_radius
                 }
             end,
             inputs = {
@@ -184,7 +231,7 @@ NodeLibrary:addNodes(
                 P.scalar("key_width", {default = 0, min = 0, soft_max = 100}),
                 P.scalar("key_height", {default = 0, min = 0, soft_max = 100})
             },
-            outputs = {P.mesh("out_mesh"), P.scalar("base_radius"), P.scalar("pitch_radius"), P.scalar("outer_radius")},
+            outputs = {P.mesh("out_mesh"), P.scalar("base_radius"), P.scalar("pitch_radius"), P.scalar("outer_radius"), P.scalar("root_radius")},
             returns = "out_mesh"
         }
     }
