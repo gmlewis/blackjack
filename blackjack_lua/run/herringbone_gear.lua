@@ -181,25 +181,25 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
         table.insert(faces, bottom_tooth)
 
         -- create arc at root_radius across inner tooth edge
-        -- local last_pt1 = last_side_verts[segment]
-        -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
-        -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
-        -- local diff1 = end1 - start1
-        -- local last_pt2 = last_side_verts[segment + 1]
-        -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
-        -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
-        -- local diff2 = end2 - start2
-        -- for i = 1, POINTS_ON_CIRCLE do
-        --    local t = i / POINTS_ON_CIRCLE
-        --    local phi1 = start1 + t * diff1
-        --    local pt1 = rotate_point(vector(root_radius, last_pt1.y, 0), phi1)
-        --    local phi2 = start2 + t * diff2
-        --    local pt2 = rotate_point(vector(root_radius, last_pt2.y, 0), phi2)
-        --    table.insert(faces, { last_pt1, pt1, pt2 })
-        --    table.insert(faces, { last_pt1, pt2, last_pt2 })
-        --    last_pt1 = pt1
-        --    last_pt2 = pt2
-        -- end
+        for segment = 1, #last_side_verts-1 do
+           local last_pt1 = last_side_verts[segment]
+           -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
+           -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
+           -- local diff1 = end1 - start1
+           local last_pt2 = last_side_verts[segment + 1]
+           -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
+           -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
+           -- local diff2 = end2 - start2
+           local t = 0.05 * 1 / POINTS_ON_CIRCLE  -- TODO
+           for j = 1, POINTS_ON_CIRCLE do
+              local pt1 = rotate_point(last_pt1, t)
+              local pt2 = rotate_point(last_pt2, t)
+              table.insert(faces, { pos+last_pt1, pos+pt1, pos+pt2 })
+              table.insert(faces, { pos+last_pt1, pos+pt2, pos+last_pt2 })
+              last_pt1 = pt1
+              last_pt2 = pt2
+           end
+        end
 
     end
     return Primitives.mesh_from_faces(faces)
