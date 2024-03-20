@@ -104,6 +104,24 @@ local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, 
     end
 end
 
+local generate_top_and_bottom = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   if inputs.hole_type == "Hollow" then
+      return
+   end
+
+   if inputs.hole_type == "None" then
+      local top = vector(0, inputs.gear_length, 0)
+      local pt1 = top_tooth[1]
+      local pt2 = top_tooth[#top_tooth]
+      table.insert(faces, { inputs.pos + top, pt1, pt2 })
+      pt1 = bottom_tooth[1]
+      pt2 = bottom_tooth[#bottom_tooth]
+      table.insert(faces, { inputs.pos, pt1, pt2 })
+      return
+   end
+
+end
+
 local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local pos = inputs.pos
     local gear_length = inputs.gear_length
@@ -138,8 +156,10 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
             last_side_verts = new_side_verts
         end
 
-        table.insert(faces, top_tooth)
-        table.insert(faces, bottom_tooth)
+        if inputs.hole_type ~= "Hollow" then
+           table.insert(faces, top_tooth)
+           table.insert(faces, bottom_tooth)
+        end
 
         -- create arc at root_radius across inner tooth edge
         for segment = 1, #last_side_verts-1 do
@@ -154,6 +174,9 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
               last_pt2 = pt2
            end
         end
+
+        -- create the top and bottom caps
+        generate_top_and_bottom(faces, i, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
 
     end
     return Primitives.mesh_from_faces(faces)
