@@ -34,7 +34,6 @@ local generate_involute_verts = function(inputs)
     local base_radius = pitch_radius * math.cos(pressure_angle)
     local root_radius = pitch_radius - 1.25 * inputs.module
     local outer_radius = pitch_radius + inputs.module
-    -- local t = math.pi * inputs.module / 2
 
     -- work out the angular extent of the tooth on the base radius
     local backlash = (0.25 * math.pi * math.cos(pressure_angle)) / (inputs.num_teeth * inputs.module)
@@ -79,17 +78,6 @@ local generate_involute_verts = function(inputs)
        table.insert(involute, vector(pt.x, 0, -pt.z))
     end
 
-    -- -- create arc across inner tooth edge
-    -- local tooth_end = involute[#involute]
-    -- local tooth_end_angle = math.atan2(tooth_end.z, tooth_end.x)
-    -- print("tooth_end_angle", tooth_end_angle, "tooth_end", tooth_end.x, tooth_end.z)
-    -- for i = 1, POINTS_ON_CIRCLE do
-    --    local phi = tooth_end_angle*(1 + i/POINTS_ON_CIRCLE)
-    --    local pt = rotate_point(vector(root_radius, 0, 0), phi)
-    --    print("i",i,"phi",phi,"pt", pt.x, -pt.z)
-    --    table.insert(involute, vector(pt.x, 0, -pt.z))
-    -- end
-
     return involute, base_radius, pitch_radius, root_radius, outer_radius
 end
 
@@ -99,39 +87,6 @@ local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, 
         local helix_rotation = max_helix_rotation - math.abs(max_helix_rotation * (-1 + segment/VERTICAL_SEGMENTS_IN_HALF_HELIX))
         local vert = vector(0, y, 0) + rotate_point(pt, theta + direction*helix_rotation)
         table.insert(new_side_verts, vert)
-
-        -- if segment > 0 and first_iteration and #last_side_verts > 0 then
-        --    table.insert(faces, {
-        --       last_side_verts[segment], -- 1-indexed
-        --       new_side_verts[segment],
-        --       new_side_verts[segment + 1],
-        --    })
-        --    table.insert(faces, {
-        --       last_side_verts[segment],
-        --       new_side_verts[segment + 1],
-        --       last_side_verts[segment + 1],
-        --    })
-        --    -- create arc at root_radius across inner tooth edge
-        --    -- local last_pt1 = last_side_verts[segment]
-        --    -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
-        --    -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
-        --    -- local diff1 = end1 - start1
-        --    -- local last_pt2 = last_side_verts[segment + 1]
-        --    -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
-        --    -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
-        --    -- local diff2 = end2 - start2
-        --    -- for i = 1, POINTS_ON_CIRCLE do
-        --    --    local t = i / POINTS_ON_CIRCLE
-        --    --    local phi1 = start1 + t * diff1
-        --    --    local pt1 = rotate_point(vector(root_radius, last_pt1.y, 0), phi1)
-        --    --    local phi2 = start2 + t * diff2
-        --    --    local pt2 = rotate_point(vector(root_radius, last_pt2.y, 0), phi2)
-        --    --    table.insert(faces, { last_pt1, pt1, pt2 })
-        --    --    table.insert(faces, { last_pt1, pt2, last_pt2 })
-        --    --    last_pt1 = pt1
-        --    --    last_pt2 = pt2
-        --    -- end
-        -- end
 
         if segment > 0 and not first_iteration then
            -- create two faces
