@@ -158,10 +158,16 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local helix_ratio = math.tan(math.rad(inputs.helix_angle))
     local max_helix_rotation = helix_ratio * helix_length / outer_radius
 
+    local involute_start_angle = math.atan2(involute[1].z, involute[1].x)
+    local involute_end_angle = math.atan2(involute[#involute].z, involute[#involute].x)
+    local involute_arc_angle = math.abs(involute_end_angle - involute_start_angle)
+    local gap_arc_angle = 2 * math.pi / inputs.num_teeth - involute_arc_angle
+    local gap_delta = gap_arc_angle / POINTS_ON_CIRCLE
+
     local last_side_verts = {}
     local faces = {}
     for i = 0, inputs.num_teeth - 1 do
-        local theta = i * math.pi * 2 / inputs.num_teeth
+        local theta = i * 2 * math.pi / inputs.num_teeth
         local top_tooth = {}
         local bottom_tooth = {}
 
@@ -183,17 +189,10 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
         -- create arc at root_radius across inner tooth edge
         for segment = 1, #last_side_verts-1 do
            local last_pt1 = last_side_verts[segment]
-           -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
-           -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
-           -- local diff1 = end1 - start1
            local last_pt2 = last_side_verts[segment + 1]
-           -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
-           -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
-           -- local diff2 = end2 - start2
-           local t = 0.05 * 1 / POINTS_ON_CIRCLE  -- TODO
            for j = 1, POINTS_ON_CIRCLE do
-              local pt1 = rotate_point(last_pt1, t)
-              local pt2 = rotate_point(last_pt2, t)
+              local pt1 = rotate_point(last_pt1, gap_delta)
+              local pt2 = rotate_point(last_pt2, gap_delta)
               table.insert(faces, { pos+last_pt1, pos+pt1, pos+pt2 })
               table.insert(faces, { pos+last_pt1, pos+pt2, pos+last_pt2 })
               last_pt1 = pt1
