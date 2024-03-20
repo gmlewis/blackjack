@@ -104,51 +104,56 @@ local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, 
     end
 end
 
-local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
-   local top = vector(0, inputs.gear_length, 0)
+local hole_generator_outline = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
    local tpt1 = top_tooth[1]
    local tpt2 = top_tooth[#top_tooth]
-   local top_face = { inputs.pos + top, tpt1, tpt2 }
-   local bpt1 = bottom_tooth[1]
-   local bpt2 = bottom_tooth[#bottom_tooth]
-   local bot_face = { inputs.pos, bpt1, bpt2 }
+   local top_face = { tpt1, tpt2 }
+   local bpt1 = bottom_tooth[#bottom_tooth]
+   local bpt2 = bottom_tooth[1]
+   local bot_face = { bpt2, bpt1 }
    for j = 0, POINTS_ON_CIRCLE-1 do
       local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
       table.insert(top_face, tnext2)
       tpt2 = tnext2
-      local bnext2 = inputs.pos + rotate_point(bpt2-inputs.pos, -gap_delta)
-      table.insert(bot_face, bnext2)
+      local bnext2 = inputs.pos + rotate_point(bpt2-inputs.pos, gap_delta)
+      table.insert(bot_face, 1, bnext2)  -- reversed to that normal is correct
       bpt2 = bnext2
    end
+   return top_face, bot_face
+end
+
+local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local top_face, bot_face = hole_generator_outline(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local top = vector(0, inputs.gear_length, 0)
+   table.insert(top_face, inputs.pos + top)
+   table.insert(bot_face, inputs.pos)
+
    table.insert(faces, top_face)
    table.insert(faces, bot_face)
 end
 
 local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local top_face, bot_face = hole_generator_outline(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+
    local top = vector(0, inputs.gear_length, 0)
-   local tpt1 = top_tooth[1]
-   local tpt2 = top_tooth[#top_tooth]
-   local top_face = { tpt1, tpt2 }
-   local bpt1 = bottom_tooth[1]
-   local bpt2 = bottom_tooth[#bottom_tooth]
-   local bot_face = { bpt1, bpt2 }
-
    local r = inputs.hole_radius
-   local top_tmp = tpt2-inputs.pos
-   local top_theta = math.atan2(top_tmp.z, top_tmp.x)
-   -- the following are identical to the top versions:
-   -- local bot_tmp = bpt1-inputs.pos
-   -- local bot_theta = math.atan2(bot_tmp.z, bot_tmp.x)
-   print("tooth_idx", tooth_idx, "r", r, "top_theta", top_theta) -- , "bot_theta", bot_theta)
+   local tpt1 = top_tooth[1]
+   local tmp1 = tpt1-inputs.pos
+   local start_theta = math.atan2(tmp1.z, tmp1.x)
+   local tpt2 = top_tooth[#top_tooth]
+   local tmp2 = tpt2-inputs.pos
+   local gap_arc_length = POINTS_ON_CIRCLE * gap_delta
+   local end_theta = math.atan2(tmp2.z, tmp2.x) - gap_arc_length
+   print("tooth_idx", tooth_idx, tmp1.x, tmp1.z, "start_theta", start_theta, "end_theta", end_theta)
 
-   for j = 0, POINTS_ON_CIRCLE-1 do
-      local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
-      table.insert(faces, { inputs.pos + top, tpt2, tnext2 })
-      tpt2 = tnext2
-      local bnext1 = inputs.pos + rotate_point(bpt1-inputs.pos, gap_delta)
-      table.insert(faces, { inputs.pos, bnext1, bpt1 })
-      bpt1 = bnext1
+   for j = 0, POINTS_ON_CIRCLE do
+      local t = j / POINTS_ON_CIRCLE -- t = 0..1
+      local theta1 = start_theta + (1 - t) * (end_theta - start_theta)
+      table.insert(top_face, inputs.pos + top + rotate_point(vector(r, 0, 0), -theta1))
+      local theta2 = start_theta + t * (end_theta - start_theta)
+      table.insert(bot_face, inputs.pos + rotate_point(vector(r, 0, 0), -theta2 - gap_arc_length))
    end
+
    table.insert(faces, top_face)
    table.insert(faces, bot_face)
 end
