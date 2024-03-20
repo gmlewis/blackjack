@@ -93,57 +93,57 @@ local generate_involute_verts = function(inputs)
     return involute, base_radius, pitch_radius, root_radius, outer_radius
 end
 
-local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, first_iteration, pos, theta, direction, pt, root_radius)
+local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, first_iteration, pos, theta, direction, pt)
     for segment = 0, 2 * VERTICAL_SEGMENTS_IN_HALF_HELIX do
         local y = gear_length * segment / (2 * VERTICAL_SEGMENTS_IN_HALF_HELIX) -- 0..top (max at midpoint)
         local helix_rotation = max_helix_rotation - math.abs(max_helix_rotation * (-1 + segment/VERTICAL_SEGMENTS_IN_HALF_HELIX))
-        local vert = pos + vector(0, y, 0) + rotate_point(pt, theta + direction*helix_rotation)
+        local vert = vector(0, y, 0) + rotate_point(pt, theta + direction*helix_rotation)
         table.insert(new_side_verts, vert)
 
-        if segment > 0 and first_iteration and #last_side_verts > 0 then
-           table.insert(faces, {
-              last_side_verts[segment], -- 1-indexed
-              new_side_verts[segment],
-              new_side_verts[segment + 1],
-           })
-           table.insert(faces, {
-              last_side_verts[segment],
-              new_side_verts[segment + 1],
-              last_side_verts[segment + 1],
-           })
-           -- create arc at root_radius across inner tooth edge
-           -- local last_pt1 = last_side_verts[segment]
-           -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
-           -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
-           -- local diff1 = end1 - start1
-           -- local last_pt2 = last_side_verts[segment + 1]
-           -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
-           -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
-           -- local diff2 = end2 - start2
-           -- for i = 1, POINTS_ON_CIRCLE do
-           --    local t = i / POINTS_ON_CIRCLE
-           --    local phi1 = start1 + t * diff1
-           --    local pt1 = rotate_point(vector(root_radius, last_pt1.y, 0), phi1)
-           --    local phi2 = start2 + t * diff2
-           --    local pt2 = rotate_point(vector(root_radius, last_pt2.y, 0), phi2)
-           --    table.insert(faces, { last_pt1, pt1, pt2 })
-           --    table.insert(faces, { last_pt1, pt2, last_pt2 })
-           --    last_pt1 = pt1
-           --    last_pt2 = pt2
-           -- end
-        end
+        -- if segment > 0 and first_iteration and #last_side_verts > 0 then
+        --    table.insert(faces, {
+        --       last_side_verts[segment], -- 1-indexed
+        --       new_side_verts[segment],
+        --       new_side_verts[segment + 1],
+        --    })
+        --    table.insert(faces, {
+        --       last_side_verts[segment],
+        --       new_side_verts[segment + 1],
+        --       last_side_verts[segment + 1],
+        --    })
+        --    -- create arc at root_radius across inner tooth edge
+        --    -- local last_pt1 = last_side_verts[segment]
+        --    -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
+        --    -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
+        --    -- local diff1 = end1 - start1
+        --    -- local last_pt2 = last_side_verts[segment + 1]
+        --    -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
+        --    -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
+        --    -- local diff2 = end2 - start2
+        --    -- for i = 1, POINTS_ON_CIRCLE do
+        --    --    local t = i / POINTS_ON_CIRCLE
+        --    --    local phi1 = start1 + t * diff1
+        --    --    local pt1 = rotate_point(vector(root_radius, last_pt1.y, 0), phi1)
+        --    --    local phi2 = start2 + t * diff2
+        --    --    local pt2 = rotate_point(vector(root_radius, last_pt2.y, 0), phi2)
+        --    --    table.insert(faces, { last_pt1, pt1, pt2 })
+        --    --    table.insert(faces, { last_pt1, pt2, last_pt2 })
+        --    --    last_pt1 = pt1
+        --    --    last_pt2 = pt2
+        --    -- end
+        -- end
 
         if segment > 0 and not first_iteration then
            -- create two faces
            table.insert(faces, {
-              last_side_verts[segment], -- 1-indexed
-              new_side_verts[segment],
-              new_side_verts[segment + 1],
+              pos + last_side_verts[segment], -- 1-indexed
+              pos + new_side_verts[segment],
+              pos + new_side_verts[segment + 1],
            })
            table.insert(faces, {
-              last_side_verts[segment],
-              new_side_verts[segment + 1],
-              last_side_verts[segment + 1],
+              pos + last_side_verts[segment],
+              pos + new_side_verts[segment + 1],
+              pos + last_side_verts[segment + 1],
            })
         end
     end
@@ -173,12 +173,34 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
             table.insert(bottom_tooth, pos + rotate_point(pt, theta))
             -- generate one side of the tooth
             local new_side_verts = {}
-            generate_side_of_tooth(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, j==1, pos, theta, direction, rev_pt, root_radius)
+            generate_side_of_tooth(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, j==1, pos, theta, direction, rev_pt)
             last_side_verts = new_side_verts
         end
 
         table.insert(faces, top_tooth)
         table.insert(faces, bottom_tooth)
+
+        -- create arc at root_radius across inner tooth edge
+        -- local last_pt1 = last_side_verts[segment]
+        -- local start1 = math.atan2(last_pt1.z, last_pt1.x)
+        -- local end1 = math.atan2(new_side_verts[segment].z, new_side_verts[segment].x)
+        -- local diff1 = end1 - start1
+        -- local last_pt2 = last_side_verts[segment + 1]
+        -- local start2 = math.atan2(last_pt2.z, last_pt2.x)
+        -- local end2 = math.atan2(new_side_verts[segment + 1].z, new_side_verts[segment + 1].x)
+        -- local diff2 = end2 - start2
+        -- for i = 1, POINTS_ON_CIRCLE do
+        --    local t = i / POINTS_ON_CIRCLE
+        --    local phi1 = start1 + t * diff1
+        --    local pt1 = rotate_point(vector(root_radius, last_pt1.y, 0), phi1)
+        --    local phi2 = start2 + t * diff2
+        --    local pt2 = rotate_point(vector(root_radius, last_pt2.y, 0), phi2)
+        --    table.insert(faces, { last_pt1, pt1, pt2 })
+        --    table.insert(faces, { last_pt1, pt2, last_pt2 })
+        --    last_pt1 = pt1
+        --    last_pt2 = pt2
+        -- end
+
     end
     return Primitives.mesh_from_faces(faces)
 end
