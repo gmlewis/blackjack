@@ -287,6 +287,13 @@ NodeLibrary:addNodes(
         HerringboneGear = {
             label = "Herringbone Gear",
             op = function(inputs)
+                if inputs.helix_angle < 0 then
+                   inputs.helix_angle = 0
+                end
+                if inputs.helix_angle > 45 then
+                   inputs.helix_angle = 45
+                end
+
                 local involute, base_radius, pitch_radius, root_radius, outer_radius = generate_involute_verts(inputs)
                 if root_radius <= 0 or (inputs.hole_type ~= "None" and inputs.hole_type ~= "Hollow" and inputs.hole_radius >= root_radius) then
                    print("invalid gear: root_radius=", root_radius, "hole_radius=", inputs.hole_radius)
@@ -323,9 +330,9 @@ NodeLibrary:addNodes(
                 P.scalar("module", {default = 3, min = 0.01, soft_max = 75}),
                 P.enum("direction", {"Clockwise", "Counter-Clockwise"}, 0),
                 P.scalar_int("num_teeth", {default = 13, min = 6, soft_max = 150}),
-                P.scalar("helix_angle", {default = 30, min = 1, soft_max = 45}),
+                P.scalar("helix_angle", {default = 30, min = 0, soft_max = 45}),
                 -- "resolution" controls the number of points in each radial curved section.
-                P.scalar_int("resolution", {default = 9, min = 1, soft_max = 100}),
+                P.scalar_int("resolution", {default = 3, min = 1, soft_max = 100}),
                 -- "pressure_angle" is in degrees:
                 P.scalar("pressure_angle", {default = 20, min = 1, soft_max = 35}),
                 P.scalar("gear_length", {default = 30, min = 0.01, soft_max = 100}),

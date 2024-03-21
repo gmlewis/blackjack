@@ -621,6 +621,23 @@ mod lua_api {
         Polygon::build_from_points(LVec3::cast_vector(points))
     }
 
+    /// Creates a mesh of polygons from a given vector of vectors of points.
+    #[lua(under = "Primitives")]
+    fn mesh_from_faces(faces: Vec<Vec<LVec3>>) -> Result<HalfEdgeMesh> {
+        let mut verts: Vec<Vec3> = vec![];
+        let mut all_faces: Vec<Vec<usize>> = Vec::with_capacity(faces.len());
+        for face in faces.into_iter() {
+            let mut face_indices: Vec<usize> = Vec::with_capacity(face.len());
+            let pts = LVec3::cast_vector(face);
+            for &pt in pts.iter() {
+                face_indices.push(verts.len());
+                verts.push(pt);
+            }
+            all_faces.push(face_indices);
+        }
+        HalfEdgeMesh::build_from_polygons(&verts, &all_faces)
+    }
+
     ///Creates a point cloud arranged in a grid
     #[lua(under = "Primitives")]
     fn grid(x: u32, y: u32, spacing_x: f32, spacing_y: f32) -> Result<HalfEdgeMesh> {
