@@ -4,7 +4,6 @@ local V = require("vector_math")
 
 local EPSILON = 1e-4
 local POINTS_IN_INVOLUTE_CURVE = 20
-local POINTS_ON_CIRCLE = 9
 local VERTICAL_SEGMENTS_IN_HALF_HELIX = 20
 
 local rotate_point = function(pnt, theta)
@@ -67,8 +66,8 @@ local generate_involute_verts = function(inputs)
     -- create arc across outer tooth edge
     local arc_tip = involute[#involute]
     local arc_tip_angle = math.abs(math.atan2(arc_tip.z, arc_tip.x))
-    for i = 1, POINTS_ON_CIRCLE-1 do
-       local phi = -arc_tip_angle + 2*arc_tip_angle*i/POINTS_ON_CIRCLE
+    for i = 1, inputs.resolution-1 do
+       local phi = -arc_tip_angle + 2*arc_tip_angle*i/inputs.resolution
        table.insert(involute, rotate_point(vector(outer_radius, 0, 0), -phi))
     end
 
@@ -111,7 +110,7 @@ local hole_generator_outline = function(faces, tooth_idx, top_tooth, bottom_toot
    local bpt1 = bottom_tooth[#bottom_tooth]
    local bpt2 = bottom_tooth[1]
    local bot_face = { bpt2, bpt1 }
-   for j = 0, POINTS_ON_CIRCLE-1 do
+   for j = 0, inputs.resolution-1 do
       local tnext2 = inputs.pos + rotate_point(tpt2-inputs.pos, gap_delta)
       table.insert(top_face, tnext2)
       tpt2 = tnext2
@@ -132,31 +131,30 @@ local hole_generator_none = function(faces, tooth_idx, top_tooth, bottom_tooth, 
    table.insert(faces, bot_face)
 end
 
-local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+local hole_generator_with_hole = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs, hole_outline_func)
    local top_face, bot_face = hole_generator_outline(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
 
    local top = vector(0, inputs.gear_length, 0)
-   local r = inputs.hole_radius
    local tpt1 = top_tooth[1]
    local tmp1 = tpt1-inputs.pos
    local start_theta = math.atan2(tmp1.z, tmp1.x)
    local tpt2 = top_tooth[#top_tooth]
    local tmp2 = tpt2-inputs.pos
-   local gap_arc_length = POINTS_ON_CIRCLE * gap_delta
+   local gap_arc_length = inputs.resolution * gap_delta
    local end_theta = math.atan2(tmp2.z, tmp2.x) - gap_arc_length
 
-   for j = 0, POINTS_ON_CIRCLE do
-      local t = j / POINTS_ON_CIRCLE -- t = 0..1
+   for j = 0, inputs.resolution do
+      local t = j / inputs.resolution -- t = 0..1
       local theta1 = start_theta + (1 - t) * (end_theta - start_theta)
-      table.insert(top_face, inputs.pos + top + rotate_point(vector(r, 0, 0), -theta1))
+      table.insert(top_face, inputs.pos + top + rotate_point(hole_outline_func(-theta1), -theta1))
       local theta2 = start_theta + t * (end_theta - start_theta)
-      table.insert(bot_face, inputs.pos + rotate_point(vector(r, 0, 0), -theta2))
+      table.insert(bot_face, inputs.pos + rotate_point(hole_outline_func(-theta2), -theta2))
    end
 
-   for j = 0, POINTS_ON_CIRCLE-1 do
+   for j = 0, inputs.resolution-1 do
       -- add a new quad face for the inner circular hole
-      local v1 = top_face[#top_face-POINTS_ON_CIRCLE+j+1]
-      local v2 = top_face[#top_face-POINTS_ON_CIRCLE+j]
+      local v1 = top_face[#top_face-inputs.resolution+j+1]
+      local v2 = top_face[#top_face-inputs.resolution+j]
       local v3 = bot_face[#bot_face-j]
       local v4 = bot_face[#bot_face-j-1]
       table.insert(faces, {v1, v2, v3, v4})
@@ -166,13 +164,52 @@ local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_too
    table.insert(faces, bot_face)
 end
 
+local hole_generator_circular = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local r = inputs.hole_radius
+   local hole_outline_func = function(theta) return vector(r,0,0) end
+   hole_generator_with_hole(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs, hole_outline_func)
+end
+
+local hole_generator_squared = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local r = inputs.hole_radius
+   local pi_over_4 = math.pi/4
+   local pi_over_2 = math.pi/2
+   local hole_outline_func = function(theta)
+      local phi = theta % pi_over_2 - pi_over_4
+      return vector(r/math.cos(phi),0,0)
+   end
+   hole_generator_with_hole(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs, hole_outline_func)
+end
+
+local hole_generator_hexagonal = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local r = inputs.hole_radius
+   local pi_over_6 = math.pi/6
+   local pi_over_3 = math.pi/3
+   local hole_outline_func = function(theta)
+      local phi = theta % pi_over_3 - pi_over_6
+      return vector(r/math.cos(phi),0,0)
+   end
+   hole_generator_with_hole(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs, hole_outline_func)
+end
+
+local hole_generator_octagonal = function(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs)
+   local r = inputs.hole_radius
+   local pi_over_8 = math.pi/8
+   local pi_over_4 = math.pi/4
+   local hole_outline_func = function(theta)
+      local phi = theta % pi_over_4 - pi_over_8
+      return vector(r/math.cos(phi),0,0)
+   end
+   hole_generator_with_hole(faces, tooth_idx, top_tooth, bottom_tooth, last_side_verts, gap_delta, inputs, hole_outline_func)
+end
+
 local hole_generator = {
    None=hole_generator_none,
    Hollow=function() end,
-   Squared=function() end,
-   Hexagonal=function() end,
+   Squared=hole_generator_squared,
+   Hexagonal=hole_generator_hexagonal,
+   Octagonal=hole_generator_octagonal,
    Circular=hole_generator_circular,
-   Keyway=function() end,
 }
 
 local generate_teeth = function(involute, root_radius, outer_radius, inputs)
@@ -188,7 +225,7 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local involute_end_angle = math.atan2(involute[#involute].z, involute[#involute].x)
     local involute_arc_angle = math.abs(involute_end_angle - involute_start_angle)
     local gap_arc_angle = 2 * math.pi / inputs.num_teeth - involute_arc_angle
-    local gap_delta = gap_arc_angle / POINTS_ON_CIRCLE
+    local gap_delta = gap_arc_angle / inputs.resolution
 
     local hole_func = hole_generator[inputs.hole_type]
 
@@ -220,7 +257,7 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
         for segment = 1, #last_side_verts-1 do
            local last_pt1 = last_side_verts[segment]
            local last_pt2 = last_side_verts[segment + 1]
-           for j = 1, POINTS_ON_CIRCLE do
+           for j = 1, inputs.resolution do
               local pt1 = rotate_point(last_pt1, gap_delta)
               local pt2 = rotate_point(last_pt2, gap_delta)
               table.insert(faces, { pos+last_pt1, pos+pt1, pos+pt2 })
@@ -283,16 +320,15 @@ NodeLibrary:addNodes(
                 P.enum("direction", {"Clockwise", "Counter-Clockwise"}, 0),
                 P.scalar_int("num_teeth", {default = 13, min = 6, soft_max = 150}),
                 P.scalar("helix_angle", {default = 30, min = 1, soft_max = 45}),
+                -- "resolution" controls the number of points in each radial curved section.
+                P.scalar_int("resolution", {default = 4, min = 1, soft_max = 100}),
                 -- "pressure_angle" is in degrees:
                 P.scalar("pressure_angle", {default = 20, min = 1, soft_max = 35}),
                 P.scalar("gear_length", {default = 30, min = 0.01, soft_max = 100}),
-                P.enum("hole_type", {"None", "Hollow", "Squared", "Hexagonal", "Circular", "Keyway"}, 0),
-                -- The following are only useful for hole_types: "Squared", "Hexagonal", "Circular", "Keyway":
-                -- For "Squared" and "Hexagonal", "hole_radius" refers the the "circumradius", not the polygon's edge length.
+                P.enum("hole_type", {"None", "Hollow", "Squared", "Hexagonal", "Octagonal", "Circular"}, 0),
+                -- The following are only useful for hole_types: "Squared", "Hexagonal", "Octagonal", "Circular":
+                -- For "Squared", "Hexagonal", and "Octagonal", "hole_radius" refers the inner radius, not the polygon's edge length.
                 P.scalar("hole_radius", {default = 0, min = 0, soft_max = 100}),
-                -- The following are only for hole_type "Keyway":
-                P.scalar("key_width", {default = 0, min = 0, soft_max = 100}),
-                P.scalar("key_height", {default = 0, min = 0, soft_max = 100})
             },
             outputs = {P.mesh("out_mesh"), P.scalar("base_radius"), P.scalar("pitch_radius"), P.scalar("outer_radius"), P.scalar("root_radius")},
             returns = "out_mesh"
