@@ -316,6 +316,10 @@ NodeLibrary:addNodes(
             end,
             inputs = {
                 P.v3("pos", vector(0, 0, 0)),
+                -- Use the "PitchRadius" for meshing with other gears.
+                P.enum("pivot", {"Center", "RootRadius", "BaseRadius", "PitchRadius", "OuterRadius"}, 3),
+                P.scalar("pivot_rotation", {default = 0, min = 0, soft_max = 360}),
+                P.scalar("rotation", {default = 0, min = 0, soft_max = 360}),
                 -- According to: https://www.stlgears.com/theory#module
                 -- "The module is a crucial factor in gear design as it determines the overall size of the gear.
                 --  The module affects the size of the gear teeth, which is represented by the distance between
