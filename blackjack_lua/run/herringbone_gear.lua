@@ -2,9 +2,7 @@ local P = require("params")
 local NodeLibrary = require("node_library")
 local V = require("vector_math")
 
-local EPSILON = 1e-4
 local POINTS_IN_INVOLUTE_CURVE = 20
-local VERTICAL_SEGMENTS_IN_HALF_HELIX = 20
 
 local rotate_point = function(pnt, theta)
     local c = math.cos(theta)
@@ -80,10 +78,10 @@ local generate_involute_verts = function(inputs)
     return involute, base_radius, pitch_radius, root_radius, outer_radius
 end
 
-local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, first_iteration, pos, theta, direction, pt)
-    for segment = 0, 2 * VERTICAL_SEGMENTS_IN_HALF_HELIX do
-        local y = gear_length * segment / (2 * VERTICAL_SEGMENTS_IN_HALF_HELIX) -- 0..top (max at midpoint)
-        local helix_rotation = max_helix_rotation - math.abs(max_helix_rotation * (-1 + segment/VERTICAL_SEGMENTS_IN_HALF_HELIX))
+local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, first_iteration, pos, theta, direction, pt, vertical_resolution)
+    for segment = 0, 2 * vertical_resolution do
+        local y = gear_length * segment / (2 * vertical_resolution) -- 0..top (max at midpoint)
+        local helix_rotation = max_helix_rotation - math.abs(max_helix_rotation * (-1 + segment/vertical_resolution))
         local vert = vector(0, y, 0) + rotate_point(pt, theta + direction*helix_rotation)
         table.insert(new_side_verts, vert)
 
@@ -142,6 +140,10 @@ local hole_generator_with_hole = function(faces, tooth_idx, top_tooth, bottom_to
    local tmp2 = tpt2-inputs.pos
    local gap_arc_length = inputs.resolution * gap_delta
    local end_theta = math.atan2(tmp2.z, tmp2.x) - gap_arc_length
+
+   while end_theta > start_theta do
+      end_theta = end_theta - 2*math.pi
+   end
 
    for j = 0, inputs.resolution do
       local t = j / inputs.resolution -- t = 0..1
@@ -228,6 +230,7 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
     local gap_delta = gap_arc_angle / inputs.resolution
 
     local hole_func = hole_generator[inputs.hole_type]
+    local vertical_resolution = 2 * inputs.resolution
 
     local last_side_verts = {}
     local faces = {}
@@ -244,7 +247,7 @@ local generate_teeth = function(involute, root_radius, outer_radius, inputs)
             table.insert(bottom_tooth, pos + rotate_point(pt, theta))
             -- generate one side of the tooth
             local new_side_verts = {}
-            generate_side_of_tooth(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, j==1, pos, theta, direction, rev_pt)
+            generate_side_of_tooth(faces, last_side_verts, new_side_verts, gear_length, max_helix_rotation, j==1, pos, theta, direction, rev_pt, vertical_resolution)
             last_side_verts = new_side_verts
         end
 
@@ -285,7 +288,8 @@ NodeLibrary:addNodes(
             label = "Herringbone Gear",
             op = function(inputs)
                 local involute, base_radius, pitch_radius, root_radius, outer_radius = generate_involute_verts(inputs)
-                if inputs.hole_radius >= root_radius then
+                if root_radius <= 0 or (inputs.hole_type ~= "None" and inputs.hole_type ~= "Hollow" and inputs.hole_radius >= root_radius) then
+                   print("invalid gear: root_radius=", root_radius, "hole_radius=", inputs.hole_radius)
                    return {
                       out_mesh = {},
                       base_radius = base_radius,
@@ -321,7 +325,7 @@ NodeLibrary:addNodes(
                 P.scalar_int("num_teeth", {default = 13, min = 6, soft_max = 150}),
                 P.scalar("helix_angle", {default = 30, min = 1, soft_max = 45}),
                 -- "resolution" controls the number of points in each radial curved section.
-                P.scalar_int("resolution", {default = 4, min = 1, soft_max = 100}),
+                P.scalar_int("resolution", {default = 9, min = 1, soft_max = 100}),
                 -- "pressure_angle" is in degrees:
                 P.scalar("pressure_angle", {default = 20, min = 1, soft_max = 35}),
                 P.scalar("gear_length", {default = 30, min = 0.01, soft_max = 100}),
