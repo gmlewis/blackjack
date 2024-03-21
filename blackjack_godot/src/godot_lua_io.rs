@@ -54,6 +54,41 @@ impl LuaFileIo for GodotLuaIo {
         }
     }
 
+    fn find_font_files(&self) -> Box<dyn Iterator<Item = String>> {
+        pub fn find_files_recursive(
+            path: GodotString,
+            files: &mut Vec<String>,
+        ) -> anyhow::Result<()> {
+            let folder = gd::Directory::new();
+            folder.open(path)?;
+            folder.list_dir_begin(true, false)?;
+            let mut file_name = folder.get_next();
+            while file_name != "".into() {
+                if folder.current_is_dir() {
+                    find_files_recursive(folder.get_current_dir(), files)?;
+                } else if file_name.ends_with(&GodotString::from_str(".lua")) {
+                    let path =
+                        folder.get_current_dir() + GodotString::from_str("/") + file_name.clone();
+                    files.push(path.to_string());
+                }
+
+                file_name = folder.get_next();
+            }
+            Ok(())
+        }
+        let mut files = vec![];
+        match find_files_recursive(
+            GodotString::from(self.base_folder.clone() + "/font"),
+            &mut files,
+        ) {
+            Ok(_) => Box::new(files.into_iter()),
+            Err(err) => {
+                godot_error!("There was an error when loading blackjack files: {err}");
+                Box::new(std::iter::empty())
+            }
+        }
+    }
+
     fn load_file_absolute(
         &self,
         path: &str,
