@@ -1,0 +1,425 @@
+// BLACKJACK_VERSION_HEADER 0 1 0
+(
+    nodes: [
+        (
+            op_name: "RPM",
+            return_value: Some("degrees"),
+            inputs: [
+                (
+                    name: "rpm",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "direction",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "degrees",
+                    data_type: "BJK_SCALAR",
+                ),
+            ],
+        ),
+        (
+            op_name: "HerringboneGear",
+            return_value: Some("out_mesh"),
+            inputs: [
+                (
+                    name: "pos",
+                    data_type: "BJK_VECTOR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "pivot",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "pivot_rotation",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "gear_rotation",
+                    data_type: "BJK_SCALAR",
+                    kind: Conection(
+                        node_idx: 0,
+                        param_name: "degrees",
+                    ),
+                ),
+                (
+                    name: "module",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "direction",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "num_teeth",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "helix_angle",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "resolution",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "pressure_angle",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "gear_length",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "hole_type",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "hole_radius",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "out_mesh",
+                    data_type: "BJK_MESH",
+                ),
+                (
+                    name: "base_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+                (
+                    name: "pitch_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+                (
+                    name: "outer_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+                (
+                    name: "root_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+            ],
+        ),
+        (
+            op_name: "HerringboneGear",
+            return_value: Some("out_mesh"),
+            inputs: [
+                (
+                    name: "pos",
+                    data_type: "BJK_VECTOR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "pivot",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "pivot_rotation",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "gear_rotation",
+                    data_type: "BJK_SCALAR",
+                    kind: Conection(
+                        node_idx: 0,
+                        param_name: "degrees",
+                    ),
+                ),
+                (
+                    name: "module",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "direction",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "num_teeth",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "helix_angle",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "resolution",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "pressure_angle",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "gear_length",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "hole_type",
+                    data_type: "BJK_STRING",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+                (
+                    name: "hole_radius",
+                    data_type: "BJK_SCALAR",
+                    kind: External(
+                        promoted: None,
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "out_mesh",
+                    data_type: "BJK_MESH",
+                ),
+                (
+                    name: "base_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+                (
+                    name: "pitch_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+                (
+                    name: "outer_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+                (
+                    name: "root_radius",
+                    data_type: "BJK_SCALAR",
+                ),
+            ],
+        ),
+        (
+            op_name: "MergeMeshes",
+            return_value: Some("out_mesh"),
+            inputs: [
+                (
+                    name: "mesh_a",
+                    data_type: "BJK_MESH",
+                    kind: Conection(
+                        node_idx: 1,
+                        param_name: "out_mesh",
+                    ),
+                ),
+                (
+                    name: "mesh_b",
+                    data_type: "BJK_MESH",
+                    kind: Conection(
+                        node_idx: 2,
+                        param_name: "out_mesh",
+                    ),
+                ),
+            ],
+            outputs: [
+                (
+                    name: "out_mesh",
+                    data_type: "BJK_MESH",
+                ),
+            ],
+        ),
+    ],
+    default_node: Some(3),
+    ui_data: Some((
+        node_positions: [
+            (233.15625, 45.70703),
+            (535.1094, 3.328125),
+            (952.1211, 5.265625),
+            (1424.2969, 207.75781),
+        ],
+        node_order: [
+            0,
+            2,
+            3,
+            1,
+        ],
+        pan: (0.0, 0.0),
+        zoom: 0.5,
+        locked_gizmo_nodes: [],
+    )),
+    external_parameters: Some((
+        param_values: {
+            (
+                node_idx: 1,
+                param_name: "pressure_angle",
+            ): Scalar(20.0),
+            (
+                node_idx: 0,
+                param_name: "direction",
+            ): String("Clockwise"),
+            (
+                node_idx: 2,
+                param_name: "direction",
+            ): String("Clockwise"),
+            (
+                node_idx: 2,
+                param_name: "resolution",
+            ): Scalar(1.0),
+            (
+                node_idx: 2,
+                param_name: "helix_angle",
+            ): Scalar(30.0),
+            (
+                node_idx: 2,
+                param_name: "hole_radius",
+            ): Scalar(0.0),
+            (
+                node_idx: 2,
+                param_name: "pivot_rotation",
+            ): Scalar(180.0),
+            (
+                node_idx: 2,
+                param_name: "pos",
+            ): Vector((0.0, 0.0, 0.0)),
+            (
+                node_idx: 2,
+                param_name: "module",
+            ): Scalar(3.0),
+            (
+                node_idx: 1,
+                param_name: "resolution",
+            ): Scalar(1.0),
+            (
+                node_idx: 1,
+                param_name: "module",
+            ): Scalar(3.0),
+            (
+                node_idx: 2,
+                param_name: "hole_type",
+            ): String("None"),
+            (
+                node_idx: 2,
+                param_name: "pressure_angle",
+            ): Scalar(20.0),
+            (
+                node_idx: 2,
+                param_name: "num_teeth",
+            ): Scalar(60.0),
+            (
+                node_idx: 1,
+                param_name: "gear_length",
+            ): Scalar(30.0),
+            (
+                node_idx: 1,
+                param_name: "pos",
+            ): Vector((0.0, 0.0, 0.0)),
+            (
+                node_idx: 1,
+                param_name: "direction",
+            ): String("Clockwise"),
+            (
+                node_idx: 2,
+                param_name: "pivot",
+            ): String("PitchRadius"),
+            (
+                node_idx: 0,
+                param_name: "rpm",
+            ): Scalar(0.5),
+            (
+                node_idx: 2,
+                param_name: "gear_length",
+            ): Scalar(30.0),
+            (
+                node_idx: 1,
+                param_name: "hole_radius",
+            ): Scalar(0.0),
+            (
+                node_idx: 1,
+                param_name: "pivot",
+            ): String("PitchRadius"),
+            (
+                node_idx: 1,
+                param_name: "pivot_rotation",
+            ): Scalar(0.0),
+            (
+                node_idx: 1,
+                param_name: "helix_angle",
+            ): Scalar(30.0),
+            (
+                node_idx: 1,
+                param_name: "num_teeth",
+            ): Scalar(13.0),
+            (
+                node_idx: 1,
+                param_name: "hole_type",
+            ): String("None"),
+        },
+    )),
+)
