@@ -25,12 +25,23 @@ local involute_theta = function(radius, distance)
    return math.sqrt(x*x - 1)
 end
 
+local animate_gear = function(gear_angle, params)
+   if params.speed_units == "TeethPerSecond" then
+      return gear_angle + 2 * math.pi * params.speed * os.clock() / params.num_teeth
+   end
+   -- RotationsPerMinute
+   return gear_angle + 2 * math.pi * params.speed * os.clock() / 60
+end
+
 local gen_pivot_center = function(params)
-   local angle = -math.rad(params.pivot_rotation + params.gear_rotation)
+   local gear_angle = -math.rad(params.pivot_rotation + params.gear_rotation)
+   if params.speed ~= 0 then
+       gear_angle = animate_gear(gear_angle, params)
+   end
    return function(face)
       local new_face = {}
       for i = 1, #face do
-         local pt = rotate_point(face[i], angle)
+         local pt = rotate_point(face[i], gear_angle)
          table.insert(new_face, params.pos + pt)
       end
       return new_face
@@ -40,6 +51,9 @@ end
 local gen_pivot_at_radius = function(params, radius)
    local gear_angle = -math.rad(params.gear_rotation)
    local pivot_angle = -math.rad(params.pivot_rotation)
+   if params.speed ~= 0 then
+       gear_angle = animate_gear(gear_angle, params)
+   end
    return function(face)
       local new_face = {}
       for i = 1, #face do
@@ -366,6 +380,10 @@ NodeLibrary:addNodes(
             inputs = {
                 -- pos sets the pivot point in 3D space.
                 P.v3("pos", vector(0, 0, 0)),
+                -- A non-zero speed causes the gear to rotate in Blackjack with the "speed_units" units.
+                P.scalar("speed", {default = 0}),
+                -- "speed_units" represents the units that "speed" uses for animating rotation of the gear.
+                P.enum("speed_units", {"TeethPerSecond", "RotationsPerMinute"}, 0),
                 -- Use the "PitchRadius" for meshing with other gears.
                 -- "Center" is the center of the gear.
                 -- "RootRadius" is the inner-most radius of each tooth.
