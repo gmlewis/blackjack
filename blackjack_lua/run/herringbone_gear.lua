@@ -142,9 +142,11 @@ local generate_involute_verts = function(params)
 end
 
 local generate_side_of_tooth = function(faces, last_side_verts, new_side_verts, first_iteration, theta, pt, params)
-    for segment = 0, 2 * params.vertical_resolution do
-        local y = params.gear_length * segment / (2 * params.vertical_resolution) -- 0..top (max at midpoint)
-        local helix_rotation = params.max_helix_rotation - math.abs(params.max_helix_rotation * (-1 + segment/params.vertical_resolution))
+    local total_segments = (params.num_elbows + 1) * params.vertical_resolution
+    for segment = 0, total_segments do
+        local y = params.gear_length * segment / total_segments -- 0..top (max at midpoint)
+        local t = (segment/params.vertical_resolution) % 2
+        local helix_rotation = params.max_helix_rotation - math.abs(params.max_helix_rotation * (t - 1))
         local vert = vector(0, y, 0) + rotate_point(pt, -theta - params.direction*helix_rotation)
         table.insert(new_side_verts, vert)
 
@@ -410,6 +412,7 @@ NodeLibrary:addNodes(
                 P.scalar("module", {default = 3, min = 0.01, soft_max = 75}),
                 P.enum("direction", {"Clockwise", "Counter-Clockwise"}, 0),
                 P.scalar_int("num_teeth", {default = 13, min = 6, soft_max = 150}),
+                P.scalar_int("num_elbows", {default = 1, min = 1, soft_max = 10}),
                 P.scalar("helix_angle", {default = 30, min = 0, soft_max = 45}),
                 -- "resolution" controls the number of points in each radial curved section.
                 P.scalar_int("resolution", {default = 1, min = 1, soft_max = 100}),
