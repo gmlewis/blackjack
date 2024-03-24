@@ -17,6 +17,7 @@
 ![Another gif showcasing procedural modelling in Blackjack](https://user-images.githubusercontent.com/7241990/178054513-75232c00-7bd0-4e26-9474-ab2b71960c6e.gif)
 ![A third gif showcasing procedural modelling in Blackjack](https://user-images.githubusercontent.com/7241990/178053667-9e72131c-bb2b-4ffa-aab9-afdf5c51033e.gif)
 ![Gif showcasing procedural modelling in Blackjack](./doc/resources/blackjack_gif3.gif)
+![Modelling herringbone gears in Blackjack](./doc/resources/blackjack_gif6.gif)
 
 
 
@@ -75,5 +76,3 @@ Blackjack is still under active development. Many features are missing and are b
 
 ## Contributing
 Contributions are welcome! Before writing a PR, please get in touch by filing an issue 😄
-
-
