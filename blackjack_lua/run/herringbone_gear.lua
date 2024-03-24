@@ -27,14 +27,16 @@ end
 
 local animate_gear = function(gear_angle, params)
    if params.speed_units == "TeethPerSecond" then
-      return gear_angle + 2 * math.pi * params.speed * os.clock() / params.num_teeth
+      params.rpm = params.speed
+      return gear_angle + params.direction * 2 * math.pi * params.speed * os.clock() / params.num_teeth
    end
    -- RotationsPerMinute
-   return gear_angle + 2 * math.pi * params.speed * os.clock() / 60
+   params.rpm = params.speed
+   return gear_angle + params.direction * 2 * math.pi * params.speed * os.clock() / 60
 end
 
 local gen_pivot_center = function(params)
-   local gear_angle = -math.rad(params.pivot_rotation + params.gear_rotation)
+   local gear_angle = math.rad(params.pivot_rotation + params.gear_rotation)
    if params.speed ~= 0 then
        gear_angle = animate_gear(gear_angle, params)
    end
@@ -49,8 +51,8 @@ local gen_pivot_center = function(params)
 end
 
 local gen_pivot_at_radius = function(params, radius)
-   local gear_angle = -math.rad(params.gear_rotation)
-   local pivot_angle = -math.rad(params.pivot_rotation)
+   local gear_angle = math.rad(params.gear_rotation)
+   local pivot_angle = math.rad(params.pivot_rotation)
    if params.speed ~= 0 then
        gear_angle = animate_gear(gear_angle, params)
    end
@@ -63,8 +65,6 @@ local gen_pivot_at_radius = function(params, radius)
          pt = pt - vector(-radius,0,0)
          -- rotate around pivot point
          pt = rotate_point(pt, pivot_angle)
-         -- translate back to pivot point
-         pt = pt - vector(radius,0,0)
          table.insert(new_face, params.pos + pt)
       end
       return new_face
@@ -279,7 +279,6 @@ local hole_generator = {
 local generate_teeth = function(params)
     local helix_length = params.gear_length / 2
     params.top = vector(0, params.gear_length, 0)
-    params.direction = params.direction == "Clockwise" and -1 or 1
     local helix_ratio = math.tan(math.rad(params.helix_angle))
     params.max_helix_rotation = helix_ratio * helix_length / params.outer_radius
 
@@ -356,6 +355,8 @@ NodeLibrary:addNodes(
                 if params.helix_angle > 45 then
                    params.helix_angle = 45
                 end
+                params.rpm = 0
+                params.direction = params.direction == "Clockwise" and -1 or 1
 
                 generate_involute_verts(params)
                 if params.root_radius <= 0 or (params.hole_type ~= "None" and params.hole_type ~= "Hollow" and params.hole_radius >= params.root_radius) then
@@ -365,7 +366,8 @@ NodeLibrary:addNodes(
                       base_radius = params.base_radius,
                       pitch_radius = params.pitch_radius,
                       outer_radius = params.outer_radius,
-                      root_radius = params.root_radius
+                      root_radius = params.root_radius,
+                      rpm = params.rpm
                    }
                 end
                 local out_mesh = generate_teeth(params)
@@ -374,7 +376,8 @@ NodeLibrary:addNodes(
                     base_radius = params.base_radius,
                     pitch_radius = params.pitch_radius,
                     outer_radius = params.outer_radius,
-                    root_radius = params.root_radius
+                    root_radius = params.root_radius,
+                    rpm = params.rpm
                 }
             end,
             inputs = {
@@ -409,7 +412,7 @@ NodeLibrary:addNodes(
                 P.scalar_int("num_teeth", {default = 13, min = 6, soft_max = 150}),
                 P.scalar("helix_angle", {default = 30, min = 0, soft_max = 45}),
                 -- "resolution" controls the number of points in each radial curved section.
-                P.scalar_int("resolution", {default = 3, min = 1, soft_max = 100}),
+                P.scalar_int("resolution", {default = 1, min = 1, soft_max = 100}),
                 -- "pressure_angle" is in degrees:
                 P.scalar("pressure_angle", {default = 20, min = 1, soft_max = 35}),
                 P.scalar("gear_length", {default = 30, min = 0.01, soft_max = 100}),
@@ -418,7 +421,7 @@ NodeLibrary:addNodes(
                 -- For "Squared", "Hexagonal", and "Octagonal", "hole_radius" refers the inner radius, not the polygon's edge length.
                 P.scalar("hole_radius", {default = 0, min = 0, soft_max = 100}),
             },
-            outputs = {P.mesh("out_mesh"), P.scalar("base_radius"), P.scalar("pitch_radius"), P.scalar("outer_radius"), P.scalar("root_radius")},
+            outputs = {P.mesh("out_mesh"), P.scalar("base_radius"), P.scalar("pitch_radius"), P.scalar("outer_radius"), P.scalar("root_radius"), P.scalar("rpm")},
             returns = "out_mesh"
         }
     }
