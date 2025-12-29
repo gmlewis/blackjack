@@ -71,8 +71,5 @@ Blackjack is built using Rust 🦀 and stands on the shoulders of giants. Here's
 - [wgpu](https://github.com/gfx-rs/wgpu), as the base of `rend3`, is used for all custom visual effects.
 - [mlua](https://github.com/khvzak/mlua) is used to integrate [Luau](https://github.com/Roblox/luau) as an extension language.
 
-## Tool Maturity
-Blackjack is still under active development. Many features are missing and are bound to change. For now, **no promises are made with regards to stability**, but API breakage will be considered only when absolutely necessary.
-
-## Contributing
-Contributions are welcome! Before writing a PR, please get in touch by filing an issue 😄
+## Archived
+Blackjack is no longer under active development. Many features are missing. **No promises are made of any kind.**
