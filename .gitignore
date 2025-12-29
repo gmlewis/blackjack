@@ -5,7 +5,7 @@ target/
 .vscode
 
 # handy symlinks
-blackjack
-go-bjk
-run
-*.sh
+/blackjack
+/go-bjk
+/run
+/*.sh
