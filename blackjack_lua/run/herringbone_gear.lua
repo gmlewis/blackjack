@@ -416,6 +416,29 @@ local external_gear_boundary = function(module, pressure_angle_deg, num_teeth, r
     return profile, pitch_radius, base_radius
 end
 
+-- clean_polygon removes consecutive and seam points closer than eps (squared
+-- distance eps2). The mesh writer snaps vertices to 0.001 mm, so this prevents
+-- degenerate faces at very small profile steps.
+local clean_polygon = function(pts, eps2)
+    local out = {}
+    for i = 1, #pts do
+        local p = pts[i]
+        local last = out[#out]
+        if not last or (last.x - p.x)^2 + (last.z - p.z)^2 > eps2 then
+            table.insert(out, p)
+        end
+    end
+    while #out > 1 do
+        local first, last = out[1], out[#out]
+        if (first.x - last.x)^2 + (first.z - last.z)^2 <= eps2 then
+            table.remove(out)
+        else
+            break
+        end
+    end
+    return out
+end
+
 -- internal_gear_boundary builds the ring's inner boundary as the outer
 -- boundary of a phantom external gear with the ring tooth count. For an
 -- internal gear the addendum and dedendum are reversed, so the phantom's
@@ -442,11 +465,14 @@ local internal_gear_boundary = function(params)
     end
     local center_delta = math.max(0, center - nominal_center)
 
-    -- Internal gear addendum/dedendum: the tooth tip is 1.25*module inside
-    -- the pitch circle and the root/notch is 1.0*module outside it.
-    local phantom_root = ring_pitch - 1.25 * module
+    -- Internal gear addendum/dedendum: use the standard shortened internal
+    -- addendum (tooth tip 1.0*module inside the pitch circle) and root/notch
+    -- 1.0*module outside it. The deeper R-1.25*module tip is the exact cutter
+    -- envelope but is prone to tip interference with the planet flank.
+    local phantom_root = ring_pitch - module
     local phantom_tip = ring_pitch + module
     local profile = external_gear_boundary(module, pa, num_teeth, phantom_root, phantom_tip, params.resolution)
+    profile = clean_polygon(profile, 1e-4) -- 0.01 mm
 
     local min_r, max_r = math.huge, 0
     for i = 1, #profile do
@@ -489,6 +515,7 @@ local generate_internal_teeth = function(params)
             profile[i] = vector(p.x * s, 0, p.z * s)
         end
     end
+    profile = clean_polygon(profile, 1e-4) -- 0.01 mm
     local outer_radius = max_r + radial_offset + params.outer_thickness
 
     local vertical_resolution = 2 * params.resolution
@@ -510,11 +537,12 @@ local generate_internal_teeth = function(params)
         outer[segment] = {}
         for i = 1, num_points do
             local p = profile[i]
-            local r = math.sqrt(p.x * p.x + p.z * p.z)
             local pi = rotate_point(p, rot)
-            local s = 1
-            if r > 0 then s = outer_radius / r end
-            local po = rotate_point(vector(p.x * s, 0, p.z * s), rot)
+            -- Sample the outer cylinder uniformly so it never has coincident
+            -- points (the inner profile can contain a radial root segment at a
+            -- single angle). This also gives a cleaner smooth cylinder.
+            local outer_angle = -2 * math.pi * (i - 1) / num_points + rot
+            local po = rotate_point(vector(outer_radius, 0, 0), outer_angle)
             inner[segment][i] = vector(pi.x, y, pi.z)
             outer[segment][i] = vector(po.x, y, po.z)
         end
