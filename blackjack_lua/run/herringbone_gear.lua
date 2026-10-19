@@ -346,6 +346,280 @@ local generate_teeth = function(params)
     return Primitives.mesh_from_faces(faces)
 end
 
+-- ---------------------------------------------------------------------------
+-- Internal (ring) gear support
+-- ---------------------------------------------------------------------------
+-- An internal gear cannot be made by simply mirroring an external gear. The
+-- correct profile is the envelope swept by the mating planet gear as it rolls
+-- inside the ring. The helpers below build that envelope and extrude it with
+-- the same herringbone twist used by the external teeth.
+
+-- external_gear_boundary returns the complete clockwise outer boundary of an
+-- external involute gear (tooth flanks, tip arcs, and root arcs).
+local external_gear_boundary = function(module, pressure_angle_deg, num_teeth, root_radius, outer_radius, resolution)
+    local pressure_angle = math.rad(pressure_angle_deg)
+    local pitch_radius = module * num_teeth / 2
+    local base_radius = pitch_radius * math.cos(pressure_angle)
+    local face_angle = math.tan(pressure_angle) - pressure_angle
+    local backlash = (0.25 * math.pi * math.cos(pressure_angle)) / (num_teeth * module)
+    local backlash_angle = backlash / (2 * pitch_radius)
+    local center_angle = math.pi / (2 * num_teeth) + face_angle - backlash_angle
+
+    local start_angle = involute_theta(base_radius, math.max(base_radius, root_radius))
+    local stop_angle = involute_theta(base_radius, outer_radius)
+    local d_theta = (stop_angle - start_angle) / POINTS_IN_INVOLUTE_CURVE
+
+    local involute = {}
+    if root_radius < base_radius then
+        table.insert(involute, rotate_point(vector(root_radius, 0, 0), -center_angle))
+    end
+    local angle = start_angle
+    for i = 0, POINTS_IN_INVOLUTE_CURVE do
+        table.insert(involute, rotate_point(involute_xy(base_radius, angle), -center_angle))
+        angle = angle + d_theta
+    end
+
+    local num_facets = #involute
+    local arc_tip = involute[#involute]
+    local arc_tip_angle = math.abs(math.atan2(arc_tip.z, arc_tip.x))
+    for i = 1, resolution - 1 do
+        local phi = -arc_tip_angle + 2 * arc_tip_angle * i / resolution
+        table.insert(involute, rotate_point(vector(outer_radius, 0, 0), phi))
+    end
+    for i = 1, num_facets do
+        local pt = involute[num_facets - i + 1]
+        table.insert(involute, vector(pt.x, 0, -pt.z))
+    end
+
+    local start_profile_angle = math.atan2(involute[1].z, involute[1].x)
+    local end_profile_angle = math.atan2(involute[#involute].z, involute[#involute].x)
+    local involute_arc_angle = math.abs(end_profile_angle - start_profile_angle)
+    local gap_arc_angle = 2 * math.pi / num_teeth - involute_arc_angle
+    local gap_delta = gap_arc_angle / resolution
+
+    local profile = {}
+    for tooth = 0, num_teeth - 1 do
+        local tooth_angle = -2 * math.pi * tooth / num_teeth
+        -- Walk clockwise: upper root through the tip to the lower root.
+        for k = #involute, 1, -1 do
+            table.insert(profile, rotate_point(involute[k], tooth_angle))
+        end
+        local lower_root = rotate_point(involute[1], tooth_angle)
+        for j = 1, resolution - 1 do
+            table.insert(profile, rotate_point(lower_root, -j * gap_delta))
+        end
+    end
+    return profile, pitch_radius, base_radius
+end
+
+local subdivide_polygon = function(profile, n)
+    if n < 1 then n = 1 end
+    local out = {}
+    for i = 1, #profile do
+        local p0 = profile[i]
+        local p1 = profile[(i % #profile) + 1]
+        for k = 0, n - 1 do
+            local t = k / n
+            table.insert(out, vector(p0.x + t * (p1.x - p0.x), 0, p0.z + t * (p1.z - p0.z)))
+        end
+    end
+    return out
+end
+
+local normalize2 = function(x, z)
+    local l = math.sqrt(x * x + z * z)
+    if l == 0 then
+        return 0, 0
+    end
+    return x / l, z / l
+end
+
+local offset_polygon_outward = function(profile, c)
+    local n = #profile
+    local out = {}
+    for i = 1, n do
+        local prev = profile[(i - 2) % n + 1]
+        local cur = profile[i]
+        local next = profile[(i % n) + 1]
+        local d1x, d1z = cur.x - prev.x, cur.z - prev.z
+        local d2x, d2z = next.x - cur.x, next.z - cur.z
+        local n1x, n1z = normalize2(-d1z, d1x)
+        local n2x, n2z = normalize2(-d2z, d2x)
+        local bx, bz = normalize2(n1x + n2x, n1z + n2z)
+        local denom = bx * n1x + bz * n1z
+        if math.abs(denom) < 1e-9 then denom = 1 end
+        local t = c / denom
+        table.insert(out, vector(cur.x + t * bx, 0, cur.z + t * bz))
+    end
+    return out
+end
+
+-- internal_gear_boundary computes the ring inner boundary as the outer
+-- envelope of the mating planet gear rolling inside the ring.
+local internal_gear_boundary = function(params)
+    local module = params.module
+    local pa = params.pressure_angle
+    local num_teeth = params.num_teeth
+    local mate_teeth = params.mate_num_teeth
+    if mate_teeth < 6 then
+        mate_teeth = num_teeth
+    end
+
+    local ring_pitch = module * num_teeth / 2
+    local ring_base = ring_pitch * math.cos(math.rad(pa))
+    local mate_pitch = module * mate_teeth / 2
+    local mate_root = mate_pitch - 1.25 * module
+    local mate_outer = mate_pitch + module
+
+    local mate = external_gear_boundary(module, pa, mate_teeth, mate_root, mate_outer, params.resolution)
+    mate = subdivide_polygon(mate, 2)
+
+    local a = params.center_distance
+    if a <= 0 then
+        a = ring_pitch - mate_pitch
+    end
+    local phiP = math.rad(params.mate_rotation)
+    local ratio = num_teeth / mate_teeth
+    local pitch = 2 * math.pi / num_teeth
+
+    local num_bins = math.min(math.max(360, params.resolution * 40), 1440)
+    local env = {}
+    for i = 1, num_bins do
+        env[i] = 0
+    end
+    for s = 0, num_bins - 1 do
+        local phiR = pitch * s / num_bins
+        -- Cutter center in the ring's rotating frame.
+        local cx = a * math.cos(phiR)
+        local cz = -a * math.sin(phiR)
+        -- Cutter orientation in the ring frame.
+        local theta = phiP + (ratio - 1) * phiR
+        for i = 1, #mate do
+            local q = rotate_point(mate[i], theta)
+            local x, z = q.x + cx, q.z + cz
+            local ang = math.fmod(math.atan2(z, x), pitch)
+            if ang < 0 then ang = ang + pitch end
+            local bin = math.floor(ang / pitch * num_bins) + 1
+            if bin > num_bins then bin = num_bins end
+            local r = math.sqrt(x * x + z * z)
+            if r > env[bin] then env[bin] = r end
+        end
+    end
+
+    -- Fill bins that no cutter sample landed in using their neighbours.
+    for i = 1, num_bins do
+        if env[i] == 0 then
+            local prev, next = -1, -1
+            for k = 1, num_bins - 1 do
+                local idx = (i - k - 1) % num_bins + 1
+                if env[idx] ~= 0 then prev = idx; break end
+            end
+            for k = 1, num_bins - 1 do
+                local idx = (i + k - 1) % num_bins + 1
+                if env[idx] ~= 0 then next = idx; break end
+            end
+            if prev >= 0 and next >= 0 then
+                local prev_dist = (i - prev + num_bins) % num_bins
+                local next_dist = (next - i + num_bins) % num_bins
+                local total = prev_dist + next_dist
+                env[i] = env[prev] + prev_dist / total * (env[next] - env[prev])
+            elseif prev >= 0 then
+                env[i] = env[prev]
+            elseif next >= 0 then
+                env[i] = env[next]
+            end
+        end
+    end
+
+    local env_at = function(ang)
+        ang = math.fmod(ang, pitch)
+        if ang < 0 then ang = ang + pitch end
+        local x = ang / pitch * num_bins
+        local i = math.floor(x) + 1
+        local t = x - math.floor(x)
+        local j = (i % num_bins) + 1
+        return env[i] * (1 - t) + env[j] * t
+    end
+
+    local per_tooth = math.min(math.max(90, params.resolution * 10), 360)
+    local profile = {}
+    local min_r, max_r = math.huge, 0
+    for tooth = 0, num_teeth - 1 do
+        local base = -2 * math.pi * tooth / num_teeth
+        for j = 0, per_tooth - 1 do
+            local ang = base - j * pitch / per_tooth
+            local r = env_at(ang)
+            table.insert(profile, vector(r * math.cos(ang), 0, r * math.sin(ang)))
+            if r < min_r then min_r = r end
+            if r > max_r then max_r = r end
+        end
+    end
+    return profile, min_r, max_r, ring_pitch, ring_base, mate_pitch, mate_outer
+end
+
+local generate_internal_teeth = function(params)
+    local profile, min_r, max_r, ring_pitch, ring_base, mate_pitch, mate_outer = internal_gear_boundary(params)
+
+    profile = offset_polygon_outward(profile, params.clearance)
+    local outer_radius = max_r + params.clearance + params.outer_thickness
+
+    local vertical_resolution = 2 * params.resolution
+    local total_segments = (params.num_elbows + 1) * vertical_resolution
+    local max_helix_mate = math.tan(math.rad(params.helix_angle)) * (params.gear_length / 2) / mate_outer
+    local ring_scale = mate_pitch / ring_pitch
+
+    params.rotate_final_face = gen_rotate_final_face_func(params)
+
+    local inner = {}
+    local outer = {}
+    local num_points = #profile
+    for segment = 0, total_segments do
+        local y = params.gear_length * segment / total_segments
+        local t = (segment / vertical_resolution) % 2
+        local helix_rotation = max_helix_mate - math.abs(max_helix_mate * (t - 1))
+        local rot = -params.direction * ring_scale * helix_rotation
+        inner[segment] = {}
+        outer[segment] = {}
+        for i = 1, num_points do
+            local p = profile[i]
+            local r = math.sqrt(p.x * p.x + p.z * p.z)
+            local pi = rotate_point(p, rot)
+            local s = 1
+            if r > 0 then s = outer_radius / r end
+            local po = rotate_point(vector(p.x * s, 0, p.z * s), rot)
+            inner[segment][i] = vector(pi.x, y, pi.z)
+            outer[segment][i] = vector(po.x, y, po.z)
+        end
+    end
+
+    local faces = {}
+    for segment = 0, total_segments - 1 do
+        for i = 1, num_points do
+            local j = (i % num_points) + 1
+            table.insert(faces, params.rotate_final_face({
+                inner[segment][i], inner[segment + 1][i], inner[segment + 1][j], inner[segment][j],
+            }))
+            table.insert(faces, params.rotate_final_face({
+                outer[segment][i], outer[segment][j], outer[segment + 1][j], outer[segment + 1][i],
+            }))
+        end
+    end
+    for i = 1, num_points do
+        local j = (i % num_points) + 1
+        table.insert(faces, params.rotate_final_face({
+            inner[0][i], inner[0][j], outer[0][j], outer[0][i],
+        }))
+    end
+    for i = 1, num_points do
+        local j = (i % num_points) + 1
+        table.insert(faces, params.rotate_final_face({
+            inner[total_segments][i], outer[total_segments][i], outer[total_segments][j], inner[total_segments][j],
+        }))
+    end
+
+    return Primitives.mesh_from_faces(faces), ring_base, ring_pitch, min_r + params.clearance, outer_radius
+end
+
 NodeLibrary:addNodes(
     {
         -- This is a herringbone gear model, inspired by:
@@ -364,6 +638,29 @@ NodeLibrary:addNodes(
                 end
                 params.rpm = 0
                 params.direction = params.direction == "Clockwise" and -1 or 1
+
+                if params.gear_side == "Internal" then
+                    if params.num_teeth < 6 then
+                        print("invalid internal gear: num_teeth=", params.num_teeth)
+                        return {
+                            out_mesh = {},
+                            base_radius = 0,
+                            pitch_radius = 0,
+                            outer_radius = 0,
+                            root_radius = 0,
+                            rpm = params.rpm,
+                        }
+                    end
+                    local out_mesh, base_radius, pitch_radius, outer_radius, root_radius = generate_internal_teeth(params)
+                    return {
+                        out_mesh = out_mesh,
+                        base_radius = base_radius,
+                        pitch_radius = pitch_radius,
+                        outer_radius = outer_radius,
+                        root_radius = root_radius,
+                        rpm = params.rpm,
+                    }
+                end
 
                 generate_involute_verts(params)
                 if params.root_radius <= 0 or (params.hole_type ~= "None" and params.hole_type ~= "Hollow" and params.hole_radius >= params.root_radius) then
@@ -428,6 +725,20 @@ NodeLibrary:addNodes(
                 -- The following are only useful for hole_types: "Squared", "Hexagonal", "Octagonal", "Circular":
                 -- For "Squared", "Hexagonal", and "Octagonal", "hole_radius" refers the inner radius, not the polygon's edge length.
                 P.scalar("hole_radius", {default = 0, min = 0, soft_max = 100}),
+                -- Internal (ring) gear support. With gear_side="Internal", the
+                -- mesh is an inward-facing herringbone ring gear whose inner
+                -- profile is generated as the envelope of the mating planet.
+                P.enum("gear_side", {"External", "Internal"}, 0),
+                -- Number of teeth on the mating planet gear (used only when internal).
+                P.scalar_int("mate_num_teeth", {default = 0, min = 0, soft_max = 150}),
+                -- Rotation of the mating planet at y=0, in degrees (used only when internal).
+                P.scalar("mate_rotation", {default = 0, soft_max = 360}),
+                -- Center distance between the ring and the mating planet (0 = pitch radii difference).
+                P.scalar("center_distance", {default = 0, min = 0, soft_max = 500}),
+                -- Radial clearance added to the internal profile (used only when internal).
+                P.scalar("clearance", {default = 0.25, min = 0, soft_max = 10}),
+                -- Radial wall thickness from the deepest notch to the smooth outer cylinder.
+                P.scalar("outer_thickness", {default = 10, min = 0.01, soft_max = 100}),
             },
             outputs = {P.mesh("out_mesh"), P.scalar("base_radius"), P.scalar("pitch_radius"), P.scalar("outer_radius"), P.scalar("root_radius"), P.scalar("rpm")},
             returns = "out_mesh"
