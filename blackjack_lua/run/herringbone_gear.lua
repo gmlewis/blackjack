@@ -350,9 +350,13 @@ end
 -- Internal (ring) gear support
 -- ---------------------------------------------------------------------------
 -- An internal gear cannot be made by simply mirroring an external gear. The
--- correct profile is the envelope swept by the mating planet gear as it rolls
--- inside the ring. The helpers below build that envelope and extrude it with
--- the same herringbone twist used by the external teeth.
+-- ring's inner boundary is the outer boundary of a phantom external gear with
+-- the ring tooth count and the internal addendum/dedendum convention (tooth
+-- tip 1.25*module inside the pitch circle, root 1.0*module outside it). The
+-- phantom's tooth centers are phase-aligned with the mating planet's teeth.
+-- The requested clearance is applied as a smooth radial offset. The helpers
+-- below build that profile and extrude it with the same herringbone twist used
+-- by the external teeth.
 
 -- external_gear_boundary returns the complete clockwise outer boundary of an
 -- external involute gear (tooth flanks, tip arcs, and root arcs).
@@ -412,50 +416,10 @@ local external_gear_boundary = function(module, pressure_angle_deg, num_teeth, r
     return profile, pitch_radius, base_radius
 end
 
-local subdivide_polygon = function(profile, n)
-    if n < 1 then n = 1 end
-    local out = {}
-    for i = 1, #profile do
-        local p0 = profile[i]
-        local p1 = profile[(i % #profile) + 1]
-        for k = 0, n - 1 do
-            local t = k / n
-            table.insert(out, vector(p0.x + t * (p1.x - p0.x), 0, p0.z + t * (p1.z - p0.z)))
-        end
-    end
-    return out
-end
-
-local normalize2 = function(x, z)
-    local l = math.sqrt(x * x + z * z)
-    if l == 0 then
-        return 0, 0
-    end
-    return x / l, z / l
-end
-
-local offset_polygon_outward = function(profile, c)
-    local n = #profile
-    local out = {}
-    for i = 1, n do
-        local prev = profile[(i - 2) % n + 1]
-        local cur = profile[i]
-        local next = profile[(i % n) + 1]
-        local d1x, d1z = cur.x - prev.x, cur.z - prev.z
-        local d2x, d2z = next.x - cur.x, next.z - cur.z
-        local n1x, n1z = normalize2(-d1z, d1x)
-        local n2x, n2z = normalize2(-d2z, d2x)
-        local bx, bz = normalize2(n1x + n2x, n1z + n2z)
-        local denom = bx * n1x + bz * n1z
-        if math.abs(denom) < 1e-9 then denom = 1 end
-        local t = c / denom
-        table.insert(out, vector(cur.x + t * bx, 0, cur.z + t * bz))
-    end
-    return out
-end
-
--- internal_gear_boundary computes the ring inner boundary as the outer
--- envelope of the mating planet gear rolling inside the ring.
+-- internal_gear_boundary builds the ring's inner boundary as the outer
+-- boundary of a phantom external gear with the ring tooth count. For an
+-- internal gear the addendum and dedendum are reversed, so the phantom's
+-- root radius is the ring tooth tip and its tip radius is the ring notch.
 local internal_gear_boundary = function(params)
     local module = params.module
     local pa = params.pressure_angle
@@ -468,100 +432,64 @@ local internal_gear_boundary = function(params)
     local ring_pitch = module * num_teeth / 2
     local ring_base = ring_pitch * math.cos(math.rad(pa))
     local mate_pitch = module * mate_teeth / 2
-    local mate_root = mate_pitch - 1.25 * module
     local mate_outer = mate_pitch + module
 
-    local mate = external_gear_boundary(module, pa, mate_teeth, mate_root, mate_outer, params.resolution)
-    mate = subdivide_polygon(mate, 2)
-
-    local a = params.center_distance
-    if a <= 0 then
-        a = ring_pitch - mate_pitch
+    -- Compensate for an increased ring/planet center distance.
+    local nominal_center = ring_pitch - mate_pitch
+    local center = params.center_distance
+    if center <= 0 then
+        center = nominal_center
     end
-    local phiP = math.rad(params.mate_rotation)
-    local ratio = num_teeth / mate_teeth
-    local pitch = 2 * math.pi / num_teeth
+    local center_delta = math.max(0, center - nominal_center)
 
-    local num_bins = math.min(math.max(360, params.resolution * 40), 1440)
-    local env = {}
-    for i = 1, num_bins do
-        env[i] = 0
-    end
-    for s = 0, num_bins - 1 do
-        local phiR = pitch * s / num_bins
-        -- Cutter center in the ring's rotating frame.
-        local cx = a * math.cos(phiR)
-        local cz = -a * math.sin(phiR)
-        -- Cutter orientation in the ring frame.
-        local theta = phiP + (ratio - 1) * phiR
-        for i = 1, #mate do
-            local q = rotate_point(mate[i], theta)
-            local x, z = q.x + cx, q.z + cz
-            local ang = math.fmod(math.atan2(z, x), pitch)
-            if ang < 0 then ang = ang + pitch end
-            local bin = math.floor(ang / pitch * num_bins) + 1
-            if bin > num_bins then bin = num_bins end
-            local r = math.sqrt(x * x + z * z)
-            if r > env[bin] then env[bin] = r end
-        end
-    end
+    -- Internal gear addendum/dedendum: the tooth tip is 1.25*module inside
+    -- the pitch circle and the root/notch is 1.0*module outside it.
+    local phantom_root = ring_pitch - 1.25 * module
+    local phantom_tip = ring_pitch + module
+    local profile = external_gear_boundary(module, pa, num_teeth, phantom_root, phantom_tip, params.resolution)
 
-    -- Fill bins that no cutter sample landed in using their neighbours.
-    for i = 1, num_bins do
-        if env[i] == 0 then
-            local prev, next = -1, -1
-            for k = 1, num_bins - 1 do
-                local idx = (i - k - 1) % num_bins + 1
-                if env[idx] ~= 0 then prev = idx; break end
-            end
-            for k = 1, num_bins - 1 do
-                local idx = (i + k - 1) % num_bins + 1
-                if env[idx] ~= 0 then next = idx; break end
-            end
-            if prev >= 0 and next >= 0 then
-                local prev_dist = (i - prev + num_bins) % num_bins
-                local next_dist = (next - i + num_bins) % num_bins
-                local total = prev_dist + next_dist
-                env[i] = env[prev] + prev_dist / total * (env[next] - env[prev])
-            elseif prev >= 0 then
-                env[i] = env[prev]
-            elseif next >= 0 then
-                env[i] = env[next]
-            end
-        end
-    end
-
-    local env_at = function(ang)
-        ang = math.fmod(ang, pitch)
-        if ang < 0 then ang = ang + pitch end
-        local x = ang / pitch * num_bins
-        local i = math.floor(x) + 1
-        local t = x - math.floor(x)
-        local j = (i % num_bins) + 1
-        return env[i] * (1 - t) + env[j] * t
-    end
-
-    local per_tooth = math.min(math.max(90, params.resolution * 10), 360)
-    local profile = {}
     local min_r, max_r = math.huge, 0
-    for tooth = 0, num_teeth - 1 do
-        local base = -2 * math.pi * tooth / num_teeth
-        for j = 0, per_tooth - 1 do
-            local ang = base - j * pitch / per_tooth
-            local r = env_at(ang)
-            table.insert(profile, vector(r * math.cos(ang), 0, r * math.sin(ang)))
-            if r < min_r then min_r = r end
-            if r > max_r then max_r = r end
-        end
+    for i = 1, #profile do
+        local r = math.sqrt(profile[i].x * profile[i].x + profile[i].z * profile[i].z)
+        if r < min_r then min_r = r end
+        if r > max_r then max_r = r end
     end
-    return profile, min_r, max_r, ring_pitch, ring_base, mate_pitch, mate_outer
+
+    -- Align the phantom's tooth centers with the mating planet's tooth
+    -- centers at the ring/planet pitch point. The ring's material teeth are
+    -- the phantom's gaps, so they end up half a ring pitch away.
+    local mate_pitch_angle = 2 * math.pi / mate_teeth
+    local ring_pitch_angle = 2 * math.pi / num_teeth
+    local mate_rotation = math.rad(params.mate_rotation)
+    local phase = ring_pitch_angle * math.fmod(mate_rotation / mate_pitch_angle, 1)
+    if phase < 0 then
+        phase = phase + ring_pitch_angle
+    end
+
+    return profile, min_r, max_r, ring_pitch, ring_base, mate_pitch, mate_outer, phase, center_delta
 end
 
 local generate_internal_teeth = function(params)
-    local profile, min_r, max_r, ring_pitch, ring_base, mate_pitch, mate_outer = internal_gear_boundary(params)
+    local profile, min_r, max_r, ring_pitch, ring_base, mate_pitch, mate_outer, phase, center_delta = internal_gear_boundary(params)
 
-    profile = offset_polygon_outward(profile, params.clearance)
-    local outer_radius = max_r + params.clearance + params.outer_thickness
+    -- Apply the clearance as a smooth radial offset. A radial offset of d
+    -- produces a normal flank clearance of d*sin(pressure_angle), so use
+    -- clearance/sin(pressure_angle) for the requested flank clearance. The
+    -- center_delta term compensates for the increased ring/planet center
+    -- distance. A radial offset is smooth by construction and avoids the
+    -- spikes/notches that polygon-offset joins produce at the sharp tooth
+    -- corners.
+    local radial_clearance = params.clearance / math.sin(math.rad(params.pressure_angle))
+    local radial_offset = center_delta + radial_clearance
+    for i = 1, #profile do
+        local p = profile[i]
+        local r = math.sqrt(p.x * p.x + p.z * p.z)
+        if r > 0 then
+            local s = (r + radial_offset) / r
+            profile[i] = vector(p.x * s, 0, p.z * s)
+        end
+    end
+    local outer_radius = max_r + radial_offset + params.outer_thickness
 
     local vertical_resolution = 2 * params.resolution
     local total_segments = (params.num_elbows + 1) * vertical_resolution
@@ -577,7 +505,7 @@ local generate_internal_teeth = function(params)
         local y = params.gear_length * segment / total_segments
         local t = (segment / vertical_resolution) % 2
         local helix_rotation = max_helix_mate - math.abs(max_helix_mate * (t - 1))
-        local rot = -params.direction * ring_scale * helix_rotation
+        local rot = phase - params.direction * ring_scale * helix_rotation
         inner[segment] = {}
         outer[segment] = {}
         for i = 1, num_points do
@@ -617,7 +545,7 @@ local generate_internal_teeth = function(params)
         }))
     end
 
-    return Primitives.mesh_from_faces(faces), ring_base, ring_pitch, min_r + params.clearance, outer_radius
+    return Primitives.mesh_from_faces(faces), ring_base, ring_pitch, min_r + radial_offset, outer_radius
 end
 
 NodeLibrary:addNodes(
