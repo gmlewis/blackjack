@@ -394,8 +394,10 @@ NodeLibrary:addNodes(
 
                     if i >= inputs.num_pairs then  -- final output connector of last coil
                         -- wire-width at outer radius in radians
-                        local top_ww = math.asin(inputs.wire_width / (2 * outer_radius))
-                        top_angle = rotation - top_ww
+                        -- BUG???
+                        -- local top_ww = math.asin(inputs.wire_width / (2 * outer_radius))
+                        -- top_angle = rotation - top_ww
+                        top_angle = rotation - connector_dtheta
                     end
                     local top_helix_y = coil_height - inputs.wire_width + ys[i]
                     local sx4 = inputs.pos.x + connector_radius * math.cos(top_angle + math.pi)

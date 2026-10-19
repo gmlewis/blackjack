@@ -283,6 +283,11 @@ local generate_teeth = function(params)
     params.top = vector(0, params.gear_length, 0)
     local helix_ratio = math.tan(math.rad(params.helix_angle))
     params.max_helix_rotation = helix_ratio * helix_length / params.outer_radius
+    -- The top segment is at (num_elbows + 1) * vertical_resolution, so its helix
+    -- phase is (num_elbows + 1) % 2. For an even number of elbows the top ends at
+    -- the maximum helix rotation, and the top cap must be rotated to match the
+    -- teeth where they actually ended up.
+    params.top_helix_rotation = params.max_helix_rotation * ((params.num_elbows + 1) % 2)
 
     local involute = params.involute
     local involute_start_angle = math.atan2(involute[1].z, involute[1].x)
@@ -306,7 +311,7 @@ local generate_teeth = function(params)
         -- create the tooth
         for j = 1, #involute do
             local rev_pt = involute[#involute - j + 1]
-            table.insert(top_tooth, params.top + rotate_point(rev_pt, -theta))
+            table.insert(top_tooth, params.top + rotate_point(rev_pt, -theta - params.direction*params.top_helix_rotation))
             local pt = involute[j]
             table.insert(bottom_tooth, rotate_point(pt, -theta))
             -- generate one side of the tooth
